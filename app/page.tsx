@@ -3,7 +3,7 @@ import { getDashboardState } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
-export default function Home() {
-  const initial = getDashboardState();
+export default async function Home() {
+  const initial = await getDashboardState();
   return <InterviewTrackerApp initial={initial} />;
 }

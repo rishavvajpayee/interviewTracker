@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { deleteEodReport, upsertEodReport } from "@/lib/db";
 
+export const runtime = "nodejs";
+
 type Body = {
   date: string;
   recruiter: string;
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
     otherTasks: body.otherTasks ?? "",
     submittedAt: body.submittedAt ?? "",
   });
-  const id = upsertEodReport({
+  const id = await upsertEodReport({
     date: body.date,
     recruiter: body.recruiter,
     location: body.location ?? "",
@@ -42,6 +44,6 @@ export async function DELETE(req: Request) {
   if (!Number.isFinite(id)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
-  deleteEodReport(id);
+  await deleteEodReport(id);
   return NextResponse.json({ ok: true });
 }

@@ -1,5 +1,5 @@
 import { loadDashboardState } from "./db";
 
-export function getDashboardState() {
+export async function getDashboardState() {
   return loadDashboardState();
 }
