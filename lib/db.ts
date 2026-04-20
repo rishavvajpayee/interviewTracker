@@ -1,10 +1,13 @@
 import fs from "fs";
 import path from "path";
-import Database from "better-sqlite3";
+import Sqlite from "better-sqlite3";
 import type { Candidate, DashboardState, EodReport, Offer } from "./types";
 import { DEFAULT_HIRING_TARGETS } from "./constants";
 
-let dbInstance: Database | null = null;
+/** better-sqlite3 merges class + namespace; use instance type for annotations */
+type SqliteDb = InstanceType<typeof Sqlite>;
+
+let dbInstance: SqliteDb | null = null;
 
 function dbPath() {
   const dir = path.join(process.cwd(), "data");
@@ -12,15 +15,15 @@ function dbPath() {
   return path.join(dir, "interviewtrack.db");
 }
 
-export function getDb(): Database {
+export function getDb(): SqliteDb {
   if (dbInstance) return dbInstance;
-  dbInstance = new Database(dbPath());
+  dbInstance = new Sqlite(dbPath());
   initSchema(dbInstance);
   seedIfEmpty(dbInstance);
   return dbInstance;
 }
 
-function initSchema(db: Database) {
+function initSchema(db: SqliteDb) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS candidates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +64,7 @@ function initSchema(db: Database) {
   `);
 }
 
-function seedIfEmpty(db: Database) {
+function seedIfEmpty(db: SqliteDb) {
   const n = db.prepare("SELECT COUNT(*) AS c FROM candidates").get() as { c: number };
   if (n.c > 0) return;
 
