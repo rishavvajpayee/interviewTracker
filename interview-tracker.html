@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interview Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080b14; --surface:#0e1220; --surface2:#141826; --surface3:#1c2133;
+  --accent:#f97316; --accent2:#fb923c; --accent3:#fed7aa;
+  --text:#f1f5f9; --muted:#64748b; --muted2:#94a3b8;
+  --green:#34d399; --red:#f87171; --blue:#60a5fa; --purple:#a78bfa; --yellow:#fbbf24;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.1);
+  --glow:rgba(249,115,22,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.ambient::before{content:'';position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(249,115,22,0.07) 0%,transparent 70%);top:-200px;right:-100px;border-radius:50%;}
+.ambient::after{content:'';position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(96,165,250,0.05) 0%,transparent 70%);bottom:-100px;left:100px;border-radius:50%;}
+.noise{position:fixed;inset:0;pointer-events:none;z-index:999;opacity:0.025;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:200px;}
+
+.main{padding:2rem 1.8rem;position:relative;z-index:1;}
+
+/* TOP BAR */
+.top-bar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;animation:fadeDown 0.5s ease both;}
+.dept-label{font-size:0.6rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:0.3rem;}
+h1{font-family:'Fraunces',serif;font-size:2.2rem;line-height:1.05;font-weight:700;
+  background:linear-gradient(135deg,var(--text) 50%,var(--accent3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.date-display{color:var(--muted2);font-size:0.8rem;margin-top:0.25rem;}
+.top-right{display:flex;align-items:center;gap:0.75rem;}
+.badge{background:var(--surface2);border:1px solid var(--border2);padding:0.4rem 0.85rem;
+  border-radius:2rem;font-size:0.73rem;color:var(--muted2);display:flex;align-items:center;gap:0.4rem;}
+.badge-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+
+/* VIEW TOGGLE BAR */
+.iv-top-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.6rem;margin-bottom:0.9rem;padding:0.7rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;}
+.iv-view-toggle{display:flex;gap:0.3rem;}
+.iv-view-btn{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:0.32rem 0.8rem;color:var(--muted2);font-family:'DM Sans',sans-serif;font-size:0.73rem;cursor:pointer;transition:all 0.18s;}
+.iv-view-btn:hover{color:var(--text);border-color:var(--border2);}
+.iv-view-btn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600;}
+.iv-filter-row{display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;}
+.iv-filter-row select,.iv-filter-row input[type=month]{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:0.3rem 0.55rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.71rem;outline:none;color-scheme:dark;}
+.iv-filter-row select:focus{border-color:var(--accent);}
+.iv-search{position:relative;display:flex;align-items:center;}
+.iv-search span{position:absolute;left:0.5rem;font-size:0.7rem;pointer-events:none;}
+.iv-search input{padding:0.3rem 0.55rem 0.3rem 1.8rem;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.71rem;outline:none;width:150px;transition:all 0.2s;}
+.iv-search input:focus{border-color:var(--accent);width:185px;}
+.iv-today-btn{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:0.3rem 0.7rem;color:var(--muted2);font-family:'DM Sans',sans-serif;font-size:0.71rem;cursor:pointer;transition:all 0.2s;}
+.iv-today-btn:hover,.iv-today-btn.active{color:var(--accent);border-color:rgba(249,115,22,0.4);background:var(--glow);}
+.iv-export-btn{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:0.3rem 0.7rem;color:var(--muted2);font-family:'DM Sans',sans-serif;font-size:0.71rem;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:0.3rem;}
+.iv-export-btn:hover{color:var(--text);border-color:var(--accent);}
+
+/* KPI STRIP */
+.iv-kpi-strip{display:grid;gap:0.6rem;margin-bottom:0.9rem;}
+.iv-kpi{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:0.7rem 0.9rem;text-align:center;}
+.iv-kpi-val{font-family:'Fraunces',serif;font-size:1.5rem;line-height:1;font-weight:600;margin-bottom:0.2rem;}
+.iv-kpi-lbl{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted2);}
+
+/* TABLE */
+.iv-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.iv-table-head{display:flex;justify-content:space-between;align-items:center;padding:0.9rem 1.1rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:0.5rem;}
+.iv-table-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted2);font-weight:600;}
+.iv-table{width:100%;border-collapse:collapse;}
+.iv-table th{font-size:0.61rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);padding:0.6rem 0.9rem;border-bottom:1px solid var(--border);text-align:left;background:var(--surface);cursor:pointer;user-select:none;white-space:nowrap;}
+.iv-table th:hover{color:var(--muted2);}
+.iv-table td{padding:0.7rem 0.9rem;font-size:0.78rem;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle;}
+.iv-table tr:last-child td{border-bottom:none;}
+.iv-table tr:hover td{background:rgba(255,255,255,0.015);}
+.iv-row-selected td{background:rgba(249,115,22,0.04)!important;}
+.no-entries{text-align:center;color:var(--muted);font-size:0.82rem;padding:3rem 1rem;}
+.no-entries-icon{font-size:2rem;margin-bottom:0.5rem;opacity:0.4;}
+
+/* PAGINATION */
+.iv-pagination{display:flex;justify-content:space-between;align-items:center;padding:0.7rem 1rem;border-top:1px solid var(--border);}
+.iv-page-info{font-size:0.7rem;color:var(--muted2);}
+.iv-page-btns{display:flex;gap:0.3rem;}
+.page-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.25rem 0.6rem;color:var(--muted2);font-size:0.72rem;cursor:pointer;transition:all 0.2s;}
+.page-btn:hover{color:var(--text);border-color:var(--border2);}
+.page-btn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600;}
+.page-btn:disabled{opacity:0.4;cursor:default;}
+
+/* DETAIL PANEL */
+.interview-layout{display:grid;grid-template-columns:1fr 300px;gap:0.9rem;}
+.iv-detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem;overflow-y:auto;max-height:560px;}
+
+/* DEL BTN */
+.del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.85rem;padding:0.25rem 0.35rem;transition:color 0.2s;border-radius:4px;}
+.del-btn:hover{color:var(--red);background:rgba(248,113,113,0.1);}
+
+/* CARD */
+.card{background:var(--surface);border-radius:16px;padding:1.3rem;border:1px solid var(--border);animation:fadeUp 0.6s ease both;transition:border-color 0.2s;}
+.card:hover{border-color:var(--border2);}
+.card-title{font-size:0.64rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--muted2);margin-bottom:1rem;font-weight:600;display:flex;align-items:center;justify-content:space-between;}
+
+/* ANALYTICS GRID */
+.iv-analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.9rem;}
+
+/* KANBAN */
+.kb-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:0.6rem 0.7rem;cursor:pointer;transition:all 0.18s;margin-bottom:0.4rem;}
+.kb-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+
+/* EOD STYLES */
+.eod-rec-tab{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:0.32rem 0.8rem;color:var(--muted2);font-family:'DM Sans',sans-serif;font-size:0.73rem;cursor:pointer;transition:all 0.18s;}
+.eod-rec-tab:hover{color:var(--text);}
+.eod-rec-tab.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600;}
+
+/* HS KPI */
+.iv-kpi-strip-5{grid-template-columns:repeat(5,1fr);}
+.iv-kpi-strip-10{grid-template-columns:repeat(10,1fr);}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+<div class="noise"></div>
+<div class="main">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div>
+      <div class="dept-label">Recruitment Operations</div>
+      <h1>Interview Tracker</h1>
+      <div class="date-display" id="date-display"></div>
+    </div>
+    <div class="top-right">
+      <button class="iv-export-btn" onclick="window.ivExportCSV && window.ivExportCSV()">⬇ Export CSV</button>
+      <div class="badge"><div class="badge-dot"></div>Live Data</div>
+    </div>
+  </div>
+
+  <!-- VIEW TOGGLE + FILTERS -->
+  <div class="iv-top-bar">
+    <div class="iv-view-toggle">
+      <button class="iv-view-btn active" id="vbtn-offers" onclick="ivSetView('offers',this)">📊 Recruitment Overview</button>
+      <button class="iv-view-btn" id="vbtn-eod"    onclick="ivSetView('eod',this)">📝 EOD Reports</button>
+      <button class="iv-view-btn" id="vbtn-hiring" onclick="ivSetView('hiring',this)">🎯 Hiring Status</button>
+    </div>
+    <div class="iv-filter-row">
+      <div class="iv-search"><span>🔍</span><input type="text" placeholder="Search..." id="iv-search-input" oninput="ivRender()"></div>
+      <select id="iv-filter-dept" onchange="ivRender()"><option value="">All Depts</option><option>CSAT</option><option>Founders Office</option><option>Human Resource</option><option>Marketing</option><option>Product</option><option>Sales</option></select>
+      <select id="iv-filter-role" onchange="ivRender()"><option value="">All Roles</option><option>Asst. Team Lead</option><option>BDA</option><option>CSAT Executive</option><option>Content Writer</option><option>Executive Assistant</option><option>FD Trainer</option><option>FD Trainer Intern</option><option>Fashion Model</option><option>Graphic Designer</option><option>HR Executive</option><option>HR Recruiter</option><option>Makeup Artist</option><option>Social Media Executive</option><option>Sr BDA</option></select>
+      <select id="iv-filter-status" onchange="ivRender()"><option value="">All Status</option><option>Applied</option><option>Screening</option><option>Round 1 - Virtual Interview</option><option>Round 2 - Assessment</option><option>Final Round</option><option>Offer Made</option><option>Offer Accepted</option><option>Joined</option><option>Shortlisted</option><option>Interview Scheduled</option><option>Call Back</option><option>On Hold</option><option>Rejected</option><option>Rejected (Post-Interview)</option><option>Withdrawn</option><option>DNP</option></select>
+      <select id="iv-filter-source" onchange="ivRender()"><option value="">All Sources</option><option>Direct/Other</option><option>Instagram</option><option>LinkedIn</option><option>LinkedIn Premium</option><option>Naukri</option><option>Referral</option></select>
+      <select id="iv-filter-owner" onchange="ivRender()"><option value="">All Owners</option><option>Neha Raghuvanshi</option><option>Shreya Jha</option><option>Vanshika Rawat</option></select>
+      <select id="iv-filter-location" onchange="ivRender()"><option value="">All Locations</option><option>Noida</option><option>Pune</option><option>Indore</option></select>
+      <button class="iv-today-btn" id="iv-today-btn" onclick="ivToggleToday(this)">📅 Today</button>
+      <button class="iv-export-btn" onclick="window.ivExportCSV && window.ivExportCSV()">⬇ CSV</button>
+    </div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="iv-kpi-strip iv-kpi-strip-10">
+    <div class="iv-kpi"><div class="iv-kpi-val" id="ivk-total">0</div><div class="iv-kpi-lbl">Total</div></div>
+    <div class="iv-kpi"><div class="iv-kpi-val" id="ivk-screening" style="color:var(--blue)">0</div><div class="iv-kpi-lbl">Screening</div></div>
+    <div class="iv-kpi"><div class="iv-kpi-val" id="ivk-r1" style="color:#818cf8">0</div><div class="iv-kpi-lbl">Round 1</div></div>
+    <div class="iv-kpi"><div class="iv-kpi-val" id="ivk-r2" style="color:#a78bfa">0</div><div class="iv-kpi-lbl">Round 2</div></div>
+    <div class="iv-kpi"><div class="iv-kpi-val" id="ivk-final" style="color:var(--accent)">0</div><div class="iv-kpi-lbl">Final</div></div>
+    <div class="iv-kpi"><div class="iv-kpi-val" id="ivk-offer" style="color:#34d399">0</div><div class="iv-kpi-lbl">Offers</div></div>
+    <div class="iv-kpi"><div class="iv-kpi-val" id="ivk-joined" style="color:var(--green)">0</div><div class="iv-kpi-lbl">Joined</div></div>
+    <div class="iv-kpi"><div class="iv-kpi-val" id="ivk-rejected" style="color:var(--red)">0</div><div class="iv-kpi-lbl">Rejected</div></div>
+    <div class="iv-kpi"><div class="iv-kpi-val" id="ivk-dnp" style="color:var(--yellow)">0</div><div class="iv-kpi-lbl">DNP</div></div>
+    <div class="iv-kpi"><div class="iv-kpi-val" id="ivk-conv" style="color:var(--green)">-</div><div class="iv-kpi-lbl">Offer Rate</div></div>
+  </div>
+
+  <!-- ══ EOD VIEW ══ -->
+  <div id="ivv-eod" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:0.6rem">
+      <div>
+        <div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--accent);font-weight:600;margin-bottom:0.2rem">EOD Report Logger</div>
+        <div style="font-size:0.8rem;color:var(--muted2)" id="eod-date-label"></div>
+      </div>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap" id="eod-recruiter-tabs"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem">
+      <!-- EOD Form -->
+      <div id="eod-form-wrap">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="color:var(--accent)">📋 Submit Daily Report</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.8rem;margin-bottom:1.2rem">
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Date</div><input type="date" id="eod-date" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none;color-scheme:dark"></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Recruiter</div><select id="eod-recruiter" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"><option value="">Select...</option><option>Neha Raghuvanshi</option><option>Shreya Jha</option><option>Vanshika Rawat</option></select></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Location</div><select id="eod-location" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"><option value="">Select...</option><option>Noida</option><option>Pune</option><option>Indore</option></select></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.55rem 0.8rem;background:var(--surface3);border-radius:8px;margin-bottom:0.8rem"><span style="font-size:0.9rem">📄</span><span style="font-size:0.72rem;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:0.1em">1. Resume Shortlisting</span></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;margin-bottom:1.2rem">
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Job Profile</div><select id="eod-rs-profile" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"><option value="">Select...</option><option>Asst. Team Lead</option><option>BDA</option><option>CSAT Executive</option><option>Content Writer</option><option>Executive Assistant</option><option>FD Trainer</option><option>FD Trainer Intern</option><option>Fashion Model</option><option>Graphic Designer</option><option>HR Executive</option><option>HR Recruiter</option><option>Makeup Artist</option><option>Social Media Executive</option><option>Sr BDA</option></select></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Resumes Screened</div><input type="number" id="eod-rs-screened" min="0" placeholder="0" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Resumes Shortlisted</div><input type="number" id="eod-rs-shortlisted" min="0" placeholder="0" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.55rem 0.8rem;background:var(--surface3);border-radius:8px;margin-bottom:0.8rem"><span style="font-size:0.9rem">📞</span><span style="font-size:0.72rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:0.1em">2. Screening Calls</span></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;margin-bottom:1.2rem">
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Job Profile</div><select id="eod-sc-profile" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"><option value="">Select...</option><option>Asst. Team Lead</option><option>BDA</option><option>CSAT Executive</option><option>Content Writer</option><option>Executive Assistant</option><option>FD Trainer</option><option>FD Trainer Intern</option><option>Fashion Model</option><option>Graphic Designer</option><option>HR Executive</option><option>HR Recruiter</option><option>Makeup Artist</option><option>Social Media Executive</option><option>Sr BDA</option></select></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Connected Calls</div><input type="number" id="eod-sc-calls" min="0" placeholder="0" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Candidates Shortlisted</div><input type="number" id="eod-sc-shortlisted" min="0" placeholder="0" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.55rem 0.8rem;background:var(--surface3);border-radius:8px;margin-bottom:0.8rem"><span style="font-size:0.9rem">💻</span><span style="font-size:0.72rem;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.1em">3. 1st Virtual Rounds</span></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;margin-bottom:1.2rem">
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Job Profile</div><select id="eod-vr-profile" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"><option value="">Select...</option><option>Asst. Team Lead</option><option>BDA</option><option>CSAT Executive</option><option>Content Writer</option><option>Executive Assistant</option><option>FD Trainer</option><option>FD Trainer Intern</option><option>Fashion Model</option><option>Graphic Designer</option><option>HR Executive</option><option>HR Recruiter</option><option>Makeup Artist</option><option>Social Media Executive</option><option>Sr BDA</option></select></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">No. of Rounds</div><input type="number" id="eod-vr-rounds" min="0" placeholder="0" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Candidates Shortlisted</div><input type="number" id="eod-vr-shortlisted" min="0" placeholder="0" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.55rem 0.8rem;background:var(--surface3);border-radius:8px;margin-bottom:0.8rem"><span style="font-size:0.9rem">📝</span><span style="font-size:0.72rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:0.1em">4. Assignment Round</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem;margin-bottom:1.2rem">
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Job Profile</div><select id="eod-ar-profile" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"><option value="">Select...</option><option>Asst. Team Lead</option><option>BDA</option><option>CSAT Executive</option><option>Content Writer</option><option>Executive Assistant</option><option>FD Trainer</option><option>FD Trainer Intern</option><option>Fashion Model</option><option>Graphic Designer</option><option>HR Executive</option><option>HR Recruiter</option><option>Makeup Artist</option><option>Social Media Executive</option><option>Sr BDA</option></select></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Type of Assignment</div><select id="eod-ar-type" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"><option value="">Select...</option><option>Written Test</option><option>Case Study</option><option>Practical Task</option><option>Presentation</option><option>Other</option></select></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Assignments Conducted</div><input type="number" id="eod-ar-conducted" min="0" placeholder="0" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Candidates Selected</div><input type="number" id="eod-ar-selected" min="0" placeholder="0" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.55rem 0.8rem;background:var(--surface3);border-radius:8px;margin-bottom:0.8rem"><span style="font-size:0.9rem">🏁</span><span style="font-size:0.72rem;font-weight:700;color:#34d399;text-transform:uppercase;letter-spacing:0.1em">5. Final Round</span></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;margin-bottom:1.2rem">
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Job Profile</div><select id="eod-fr-profile" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"><option value="">Select...</option><option>Asst. Team Lead</option><option>BDA</option><option>CSAT Executive</option><option>Content Writer</option><option>Executive Assistant</option><option>FD Trainer</option><option>FD Trainer Intern</option><option>Fashion Model</option><option>Graphic Designer</option><option>HR Executive</option><option>HR Recruiter</option><option>Makeup Artist</option><option>Social Media Executive</option><option>Sr BDA</option></select></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">No. of Rounds</div><input type="number" id="eod-fr-rounds" min="0" placeholder="0" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"></div>
+            <div><div style="font-size:0.62rem;color:var(--muted2);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.08em">Candidates Selected</div><input type="number" id="eod-fr-selected" min="0" placeholder="0" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none"></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.55rem 0.8rem;background:var(--surface3);border-radius:8px;margin-bottom:0.8rem"><span style="font-size:0.9rem">✅</span><span style="font-size:0.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em">6. Other Tasks Performed</span></div>
+          <div style="margin-bottom:1.2rem"><textarea id="eod-other" rows="2" placeholder="Describe any other tasks, follow-ups, escalations or blockers..." style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.6rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none;resize:vertical"></textarea></div>
+          <div style="display:flex;gap:0.6rem;align-items:center">
+            <button onclick="eodSubmit()" style="background:var(--accent);border:none;border-radius:8px;padding:0.5rem 1.4rem;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:600;cursor:pointer">Submit EOD</button>
+            <button onclick="eodClear()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:0.5rem 1rem;color:var(--muted2);font-family:'DM Sans',sans-serif;font-size:0.78rem;cursor:pointer">Clear</button>
+            <span id="eod-submit-msg" style="font-size:0.73rem;color:var(--green)"></span>
+          </div>
+        </div>
+      </div>
+      <!-- EOD Log -->
+      <div id="eod-log-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.7rem">
+          <div style="font-size:0.7rem;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:0.08em">Submitted Reports</div>
+          <button onclick="eodExport()" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:0.28rem 0.65rem;color:var(--muted2);font-size:0.68rem;cursor:pointer;font-family:inherit">⬇ Export CSV</button>
+        </div>
+        <div id="eod-log-table"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HIRING STATUS VIEW ══ -->
+  <div id="ivv-hiring" style="display:none">
+    <div class="iv-kpi-strip iv-kpi-strip-5" style="margin-top:0.8rem;margin-bottom:1.4rem">
+      <div class="iv-kpi"><div class="iv-kpi-val" id="hs-k-roles">0</div><div class="iv-kpi-lbl">Active Roles</div></div>
+      <div class="iv-kpi"><div class="iv-kpi-val" id="hs-k-open">0</div><div class="iv-kpi-lbl">Open Positions</div></div>
+      <div class="iv-kpi"><div class="iv-kpi-val" id="hs-k-pipeline">0</div><div class="iv-kpi-lbl">In Pipeline</div></div>
+      <div class="iv-kpi"><div class="iv-kpi-val" id="hs-k-joined">0</div><div class="iv-kpi-lbl">Hired (MTD)</div></div>
+      <div class="iv-kpi"><div class="iv-kpi-val" id="hs-k-fill">0%</div><div class="iv-kpi-lbl">Fill Rate</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:1.2rem">
+      <div>
+        <div class="card" style="margin-bottom:1.2rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+            <div class="card-title">🎯 Active Job Posts & Pipeline</div>
+            <button onclick="hsAddRole()" style="background:var(--accent);border:none;border-radius:7px;padding:0.3rem 0.9rem;color:#000;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:inherit">+ Add Role</button>
+          </div>
+          <div id="hs-jobs-table"></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div class="card-title">🕐 Today's EOD Activity</div>
+            <span style="font-size:0.68rem;color:var(--muted2)" id="hs-eod-date"></span>
+          </div>
+          <div id="hs-eod-summary"></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1.2rem">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem">⚙️ Set Hiring Targets</div>
+          <div style="font-size:0.68rem;color:var(--muted2);margin-bottom:0.8rem">Adjust targets to instantly update the pipeline table. Add or remove roles as needed.</div>
+          <div id="hs-target-form"></div>
+          <button onclick="hsSaveTargets()" style="margin-top:0.8rem;width:100%;background:var(--accent);border:none;border-radius:8px;padding:0.45rem;color:#000;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit">Save Targets</button>
+          <span id="hs-target-msg" style="font-size:0.68rem;color:var(--green);display:block;margin-top:0.4rem;text-align:center"></span>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem">📈 Pipeline by Stage</div>
+          <div id="hs-stage-chart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══ RECRUITMENT OVERVIEW ══ -->
+  <div id="ivv-offers">
+    <!-- Pipeline Funnel -->
+    <div class="card" style="margin-bottom:1.2rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+        <div class="card-title">🎯 Interview Pipeline Funnel</div>
+        <div id="of-funnel-total" style="font-size:0.72rem;color:var(--muted2)"></div>
+      </div>
+      <div id="of-funnel-wrap" style="display:flex;align-items:flex-end;gap:0.5rem;height:160px;padding:0 0.5rem"></div>
+      <div id="of-funnel-labels" style="display:flex;gap:0.5rem;margin-top:0.8rem;padding:0 0.5rem"></div>
+      <div id="of-conv-strip" style="display:flex;gap:0.5rem;margin-top:1rem;padding-top:0.9rem;border-top:1px solid var(--border)"></div>
+    </div>
+    <!-- Analytics Charts -->
+    <div class="iv-analytics-grid">
+      <div class="card"><div class="card-title">Applications by Source</div><div id="iv-src-chart"></div></div>
+      <div class="card"><div class="card-title">By Department</div><div id="iv-dept-chart"></div></div>
+      <div class="card" style="grid-column:span 2"><div class="card-title">Daily Application Volume</div><div style="height:140px"><svg id="iv-vol-svg" width="100%" height="140"></svg></div></div>
+      <div class="card"><div class="card-title">Pipeline Funnel</div><div id="iv-funnel"></div></div>
+      <div class="card"><div class="card-title">Recruiter Performance</div><div id="iv-recruiter"></div></div>
+      <div class="card" style="grid-column:span 2"><div class="card-title">Rating Distribution</div><div id="iv-ratings"></div></div>
+    </div>
+    <!-- Onboardings Table -->
+    <div class="card" style="margin-top:1.2rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem">
+        <div class="card-title" style="font-size:1rem">📅 Upcoming & Recent Onboardings</div>
+        <button onclick="offerExport()" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:0.3rem 0.7rem;color:var(--muted2);font-size:0.7rem;cursor:pointer">⬇ Export CSV</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="iv-table" style="width:100%">
+          <thead><tr>
+            <th>Name</th><th>Role</th><th>Dept</th>
+            <th>Offer Date</th><th>Joining Date</th>
+            <th>Status</th><th>Notes</th><th></th>
+          </tr></thead>
+          <tbody id="of-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── DATE DISPLAY ──
+document.getElementById('date-display').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' · Recruitment';
+
+// ── CANDIDATES DATA ──
+window._candidates = [{"date":"2026-01-03","candidate":"Rajan Mishra","dept":"Product","role":"FD Trainer","source":"LinkedIn Premium","owner":"Shreya Jha","status":"DNP","rating":"","notes":"","location":"Noida"},{"date":"2026-01-03","candidate":"Zara Sharma","dept":"CSAT","role":"CSAT Executive","source":"Naukri","owner":"Neha Raghuvanshi","status":"Final Round","rating":4.5,"notes":"CEO approved, exceptional candidate","location":"Noida"},{"date":"2026-01-12","candidate":"Vaibhav Choudhary","dept":"Human Resource","role":"HR Executive","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Offer Accepted","rating":4.5,"notes":"Joining confirmed, documents submitted","location":"Pune"},{"date":"2026-01-14","candidate":"Yash Desai","dept":"Human Resource","role":"HR Recruiter","source":"Naukri","owner":"Shreya Jha","status":"Offer Accepted","rating":4.5,"notes":"Joining confirmed, documents submitted","location":"Noida"},{"date":"2026-01-18","candidate":"Vivek Pillai","dept":"Marketing","role":"Content Writer","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Round 2 - Assessment","rating":4.0,"notes":"Performed well in assessment","location":"Pune"},{"date":"2026-01-23","candidate":"Rajan Srivastava","dept":"Human Resource","role":"HR Recruiter","source":"LinkedIn","owner":"Vanshika Rawat","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-01-24","candidate":"Tanvi Khanna","dept":"Marketing","role":"Graphic Designer","source":"LinkedIn","owner":"Vanshika Rawat","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Noida"},{"date":"2026-01-24","candidate":"Zoya Kaur","dept":"Marketing","role":"Content Writer","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Rejected","rating":1.0,"notes":"Not a fit - poor attitude","location":"Pune"},{"date":"2026-01-25","candidate":"Jatin Chauhan","dept":"Marketing","role":"Social Media Executive","source":"Naukri","owner":"Vanshika Rawat","status":"Screening","rating":3.0,"notes":"Good comm, exploring opportunities","location":"Noida"},{"date":"2026-01-26","candidate":"Payal Tiwari","dept":"Product","role":"Fashion Model","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-01-26","candidate":"Dhruv Kapoor","dept":"Founders Office","role":"Executive Assistant","source":"LinkedIn","owner":"Neha Raghuvanshi","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Noida"},{"date":"2026-01-27","candidate":"Pankaj Tiwari","dept":"CSAT","role":"CSAT Executive","source":"Referral","owner":"Shreya Jha","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Noida"},{"date":"2026-01-28","candidate":"Neha Rana","dept":"Human Resource","role":"HR Executive","source":"LinkedIn Premium","owner":"Neha Raghuvanshi","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-02-01","candidate":"Gauri Saxena","dept":"Product","role":"FD Trainer","source":"Instagram","owner":"Neha Raghuvanshi","status":"Applied","rating":"","notes":"","location":"Indore"},{"date":"2026-02-01","candidate":"Sakshi Srivastava","dept":"Product","role":"Makeup Artist","source":"Direct/Other","owner":"Shreya Jha","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-02-02","candidate":"Manish Rawat","dept":"Human Resource","role":"HR Recruiter","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Joined","rating":5.0,"notes":"Smooth onboarding, ramping well","location":"Noida"},{"date":"2026-02-02","candidate":"Bhavya Rawat","dept":"Product","role":"FD Trainer Intern","source":"Naukri","owner":"Neha Raghuvanshi","status":"Screening","rating":"","notes":"","location":"Pune"},{"date":"2026-02-02","candidate":"Omkar Iyer","dept":"CSAT","role":"CSAT Executive","source":"Naukri","owner":"Vanshika Rawat","status":"Joined","rating":4.5,"notes":"Active learner, great start","location":"Indore"},{"date":"2026-02-02","candidate":"Rajan Gupta","dept":"Human Resource","role":"HR Recruiter","source":"Instagram","owner":"Vanshika Rawat","status":"Round 1 - Virtual Interview","rating":4.0,"notes":"Strong candidate, good attitude","location":"Pune"},{"date":"2026-02-03","candidate":"Rajan Joshi","dept":"Marketing","role":"Content Writer","source":"Naukri","owner":"Neha Raghuvanshi","status":"Round 2 - Assessment","rating":3.0,"notes":"Average assessment score, borderline","location":"Noida"},{"date":"2026-02-03","candidate":"Nandini Mishra","dept":"Founders Office","role":"Executive Assistant","source":"Naukri","owner":"Shreya Jha","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Indore"},{"date":"2026-02-03","candidate":"Arjun Verma","dept":"Sales","role":"Sr BDA","source":"Naukri","owner":"Neha Raghuvanshi","status":"Round 1 - Virtual Interview","rating":3.0,"notes":"Decent interview, cleared basic round","location":"Noida"},{"date":"2026-02-03","candidate":"Alisha Verma","dept":"Product","role":"FD Trainer Intern","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Round 1 - Virtual Interview","rating":3.0,"notes":"Decent interview, cleared basic round","location":"Indore"},{"date":"2026-02-04","candidate":"Riya Agarwal","dept":"Human Resource","role":"HR Recruiter","source":"Referral","owner":"Vanshika Rawat","status":"Withdrawn","rating":"","notes":"Not interested after further thought","location":"Noida"},{"date":"2026-02-04","candidate":"Varsha Sharma","dept":"Sales","role":"Sr BDA","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Rejected","rating":2.0,"notes":"Weak communication, below bar","location":"Noida"},{"date":"2026-02-05","candidate":"Meera Shukla","dept":"CSAT","role":"CSAT Executive","source":"LinkedIn Premium","owner":"Neha Raghuvanshi","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-02-05","candidate":"Kriti Tripathi","dept":"Human Resource","role":"HR Executive","source":"LinkedIn","owner":"Neha Raghuvanshi","status":"Screening","rating":3.0,"notes":"Good comm, exploring opportunities","location":"Noida"},{"date":"2026-02-06","candidate":"Devika Shukla","dept":"Founders Office","role":"Executive Assistant","source":"Naukri","owner":"Vanshika Rawat","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Indore"},{"date":"2026-02-06","candidate":"Sandeep Khan","dept":"Product","role":"Fashion Model","source":"Instagram","owner":"Vanshika Rawat","status":"Rejected","rating":1.0,"notes":"Not a fit - poor attitude","location":"Noida"},{"date":"2026-02-07","candidate":"Deepak Shah","dept":"Marketing","role":"Graphic Designer","source":"LinkedIn Premium","owner":"Neha Raghuvanshi","status":"Final Round","rating":3.5,"notes":"Good fit, panel happy","location":"Pune"},{"date":"2026-02-07","candidate":"Anika Choudhary","dept":"Sales","role":"Sr BDA","source":"Naukri","owner":"Vanshika Rawat","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Pune"},{"date":"2026-02-07","candidate":"Varun Rawat","dept":"Product","role":"Makeup Artist","source":"LinkedIn Premium","owner":"Shreya Jha","status":"DNP","rating":"","notes":"","location":"Noida"},{"date":"2026-02-07","candidate":"Isha Mehta","dept":"Sales","role":"Asst. Team Lead","source":"LinkedIn","owner":"Neha Raghuvanshi","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Pune"},{"date":"2026-02-07","candidate":"Kunal Rana","dept":"Founders Office","role":"Executive Assistant","source":"LinkedIn Premium","owner":"Neha Raghuvanshi","status":"Round 2 - Assessment","rating":4.5,"notes":"Excellent scores, top performer","location":"Noida"},{"date":"2026-02-08","candidate":"Lavanya Sharma","dept":"Product","role":"FD Trainer Intern","source":"Naukri","owner":"Neha Raghuvanshi","status":"Round 2 - Assessment","rating":3.0,"notes":"Average assessment score, borderline","location":"Noida"},{"date":"2026-02-08","candidate":"Kavya Khanna","dept":"CSAT","role":"CSAT Executive","source":"Instagram","owner":"Vanshika Rawat","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Noida"},{"date":"2026-02-08","candidate":"Priya Srivastava","dept":"CSAT","role":"CSAT Executive","source":"Naukri","owner":"Shreya Jha","status":"Applied","rating":"","notes":"","location":"Pune"},{"date":"2026-02-08","candidate":"Pankaj Mehta","dept":"Human Resource","role":"HR Recruiter","source":"Instagram","owner":"Vanshika Rawat","status":"Round 2 - Assessment","rating":4.5,"notes":"Excellent scores, top performer","location":"Noida"},{"date":"2026-02-09","candidate":"Vivek Sinha","dept":"CSAT","role":"CSAT Executive","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-02-11","candidate":"Tushar Sinha","dept":"Founders Office","role":"Executive Assistant","source":"LinkedIn","owner":"Neha Raghuvanshi","status":"Round 2 - Assessment","rating":4.0,"notes":"Performed well in assessment","location":"Pune"},{"date":"2026-02-11","candidate":"Rajesh Sinha","dept":"Founders Office","role":"Executive Assistant","source":"LinkedIn Premium","owner":"Neha Raghuvanshi","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-02-13","candidate":"Chirag Gupta","dept":"CSAT","role":"CSAT Executive","source":"LinkedIn","owner":"Shreya Jha","status":"Round 2 - Assessment","rating":3.0,"notes":"Average assessment score, borderline","location":"Noida"},{"date":"2026-02-13","candidate":"Aryan Khanna","dept":"Founders Office","role":"Executive Assistant","source":"Naukri","owner":"Neha Raghuvanshi","status":"Screening","rating":3.0,"notes":"Good comm, exploring opportunities","location":"Pune"},{"date":"2026-02-15","candidate":"Pranav Jain","dept":"Sales","role":"BDA","source":"Direct/Other","owner":"Shreya Jha","status":"Final Round","rating":3.5,"notes":"Good fit, panel happy","location":"Pune"},{"date":"2026-02-15","candidate":"Zara Garg","dept":"Human Resource","role":"HR Executive","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Noida"},{"date":"2026-02-16","candidate":"Anika Sinha","dept":"Sales","role":"BDA","source":"Instagram","owner":"Vanshika Rawat","status":"Round 1 - Virtual Interview","rating":4.0,"notes":"Strong candidate, good attitude","location":"Pune"},{"date":"2026-02-16","candidate":"Zoya Dubey","dept":"Human Resource","role":"HR Recruiter","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Rejected","rating":1.0,"notes":"Not a fit - poor attitude","location":"Pune"},{"date":"2026-02-16","candidate":"Rajan Desai","dept":"Founders Office","role":"Executive Assistant","source":"Direct/Other","owner":"Shreya Jha","status":"Rejected","rating":1.0,"notes":"Not a fit - poor attitude","location":"Indore"},{"date":"2026-02-17","candidate":"Muskan Bhatia","dept":"Sales","role":"Asst. Team Lead","source":"LinkedIn","owner":"Neha Raghuvanshi","status":"Applied","rating":"","notes":"","location":"Pune"},{"date":"2026-02-17","candidate":"Sunita Verma","dept":"Sales","role":"Asst. Team Lead","source":"LinkedIn Premium","owner":"Neha Raghuvanshi","status":"Screening","rating":3.0,"notes":"Good comm, exploring opportunities","location":"Noida"},{"date":"2026-02-17","candidate":"Prakash Mishra","dept":"CSAT","role":"CSAT Executive","source":"Referral","owner":"Shreya Jha","status":"Round 1 - Virtual Interview","rating":4.0,"notes":"Strong candidate, good attitude","location":"Indore"},{"date":"2026-02-17","candidate":"Bhavya Verma","dept":"Founders Office","role":"Executive Assistant","source":"Naukri","owner":"Shreya Jha","status":"Round 1 - Virtual Interview","rating":3.0,"notes":"Decent interview, cleared basic round","location":"Noida"},{"date":"2026-02-18","candidate":"Tanvi Chauhan","dept":"Founders Office","role":"Executive Assistant","source":"LinkedIn","owner":"Shreya Jha","status":"Final Round","rating":4.0,"notes":"Very strong final round","location":"Noida"},{"date":"2026-02-18","candidate":"Mansi Kapoor","dept":"Founders Office","role":"Executive Assistant","source":"LinkedIn Premium","owner":"Neha Raghuvanshi","status":"Screening","rating":3.0,"notes":"Good comm, exploring opportunities","location":"Pune"},{"date":"2026-02-19","candidate":"Deepa Kaur","dept":"Product","role":"FD Trainer","source":"LinkedIn Premium","owner":"Neha Raghuvanshi","status":"Rejected","rating":2.0,"notes":"Weak communication, below bar","location":"Noida"},{"date":"2026-02-19","candidate":"Ishaan Chauhan","dept":"Marketing","role":"Graphic Designer","source":"Direct/Other","owner":"Vanshika Rawat","status":"Round 1 - Virtual Interview","rating":3.0,"notes":"Decent interview, cleared basic round","location":"Noida"},{"date":"2026-02-19","candidate":"Sakshi Chauhan","dept":"Marketing","role":"Social Media Executive","source":"Direct/Other","owner":"Vanshika Rawat","status":"Joined","rating":4.5,"notes":"Active learner, great start","location":"Noida"},{"date":"2026-02-19","candidate":"Himanshu Shah","dept":"Marketing","role":"Social Media Executive","source":"LinkedIn","owner":"Shreya Jha","status":"Applied","rating":"","notes":"","location":"Pune"},{"date":"2026-02-19","candidate":"Pankaj Patel","dept":"Human Resource","role":"HR Executive","source":"LinkedIn","owner":"Vanshika Rawat","status":"DNP","rating":"","notes":"","location":"Pune"},{"date":"2026-02-20","candidate":"Devika Khan","dept":"Sales","role":"BDA","source":"Naukri","owner":"Vanshika Rawat","status":"Screening","rating":"","notes":"","location":"Pune"},{"date":"2026-02-20","candidate":"Arjun Kaur","dept":"Sales","role":"Asst. Team Lead","source":"Naukri","owner":"Neha Raghuvanshi","status":"Screening","rating":"","notes":"","location":"Indore"},{"date":"2026-02-20","candidate":"Gaurav Kaur","dept":"Product","role":"FD Trainer","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Rejected","rating":1.0,"notes":"Not a fit - poor attitude","location":"Noida"},{"date":"2026-02-21","candidate":"Kriti Joshi","dept":"Human Resource","role":"HR Recruiter","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Round 1 - Virtual Interview","rating":4.0,"notes":"Strong candidate, good attitude","location":"Pune"},{"date":"2026-02-21","candidate":"Omkar Saxena","dept":"Human Resource","role":"HR Executive","source":"LinkedIn","owner":"Neha Raghuvanshi","status":"Screening","rating":3.0,"notes":"Good comm, exploring opportunities","location":"Pune"},{"date":"2026-02-22","candidate":"Roshan Kapoor","dept":"Product","role":"Makeup Artist","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Applied","rating":"","notes":"","location":"Pune"},{"date":"2026-02-22","candidate":"Sakshi Kapoor","dept":"CSAT","role":"CSAT Executive","source":"LinkedIn","owner":"Shreya Jha","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Noida"},{"date":"2026-02-22","candidate":"Alisha Kaur","dept":"Product","role":"FD Trainer","source":"Direct/Other","owner":"Vanshika Rawat","status":"Rejected","rating":2.0,"notes":"Weak communication, below bar","location":"Indore"},{"date":"2026-02-22","candidate":"Yash Verma","dept":"Sales","role":"Asst. Team Lead","source":"Naukri","owner":"Shreya Jha","status":"Applied","rating":"","notes":"","location":"Indore"},{"date":"2026-02-22","candidate":"Manish Kapoor","dept":"Marketing","role":"Content Writer","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-02-23","candidate":"Prateek Tiwari","dept":"Product","role":"Makeup Artist","source":"LinkedIn","owner":"Vanshika Rawat","status":"Round 1 - Virtual Interview","rating":3.0,"notes":"Decent interview, cleared basic round","location":"Pune"},{"date":"2026-02-23","candidate":"Khushboo Khanna","dept":"Marketing","role":"Content Writer","source":"Direct/Other","owner":"Shreya Jha","status":"Withdrawn","rating":"","notes":"Not interested after further thought","location":"Noida"},{"date":"2026-02-24","candidate":"Sahil Agarwal","dept":"CSAT","role":"CSAT Executive","source":"Naukri","owner":"Shreya Jha","status":"Offer Made","rating":4.5,"notes":"Offer rolled out, awaiting confirmation","location":"Pune"},{"date":"2026-02-24","candidate":"Sourabh Joshi","dept":"Founders Office","role":"Executive Assistant","source":"Naukri","owner":"Vanshika Rawat","status":"Round 2 - Assessment","rating":4.5,"notes":"Excellent scores, top performer","location":"Pune"},{"date":"2026-02-25","candidate":"Varsha Shukla","dept":"Marketing","role":"Graphic Designer","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Offer Made","rating":4.5,"notes":"Offer rolled out, awaiting confirmation","location":"Indore"},{"date":"2026-02-25","candidate":"Deepa Saxena","dept":"Product","role":"Makeup Artist","source":"Direct/Other","owner":"Neha Raghuvanshi","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Indore"},{"date":"2026-02-26","candidate":"Kabir Pillai","dept":"Sales","role":"BDA","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Final Round","rating":4.5,"notes":"CEO approved, exceptional candidate","location":"Noida"},{"date":"2026-02-26","candidate":"Simran Bansal","dept":"CSAT","role":"CSAT Executive","source":"LinkedIn","owner":"Vanshika Rawat","status":"Round 2 - Assessment","rating":4.0,"notes":"Performed well in assessment","location":"Noida"},{"date":"2026-02-26","candidate":"Sarika Dubey","dept":"Sales","role":"Sr BDA","source":"Naukri","owner":"Shreya Jha","status":"Round 1 - Virtual Interview","rating":2.0,"notes":"Needs improvement in articulation","location":"Pune"},{"date":"2026-02-26","candidate":"Nisha Pandey","dept":"Founders Office","role":"Executive Assistant","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Rejected","rating":2.0,"notes":"Weak communication, below bar","location":"Noida"},{"date":"2026-02-27","candidate":"Prateek Patel","dept":"Human Resource","role":"HR Executive","source":"Direct/Other","owner":"Shreya Jha","status":"Round 1 - Virtual Interview","rating":3.0,"notes":"Decent interview, cleared basic round","location":"Noida"},{"date":"2026-02-28","candidate":"Devika Rawat","dept":"Product","role":"Fashion Model","source":"LinkedIn","owner":"Vanshika Rawat","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-02-28","candidate":"Omkar Rawat","dept":"Sales","role":"Asst. Team Lead","source":"Instagram","owner":"Neha Raghuvanshi","status":"Round 1 - Virtual Interview","rating":3.0,"notes":"Decent interview, cleared basic round","location":"Noida"},{"date":"2026-03-01","candidate":"Uday Garg","dept":"Product","role":"FD Trainer Intern","source":"Referral","owner":"Vanshika Rawat","status":"Applied","rating":"","notes":"","location":"Noida"},{"date":"2026-03-01","candidate":"Aniket Joshi","dept":"Founders Office","role":"Executive Assistant","source":"Instagram","owner":"Neha Raghuvanshi","status":"Applied","rating":"","notes":"","location":"Pune"},{"date":"2026-03-03","candidate":"Aarav Chauhan","dept":"Human Resource","role":"HR Executive","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Applied","rating":"","notes":"","location":"Noida"},{"date":"2026-03-03","candidate":"Riya Mehta","dept":"Sales","role":"BDA","source":"LinkedIn","owner":"Neha Raghuvanshi","status":"Joined","rating":5.0,"notes":"Smooth onboarding, ramping well","location":"Noida"},{"date":"2026-03-03","candidate":"Dhruv Arora","dept":"Sales","role":"BDA","source":"Referral","owner":"Neha Raghuvanshi","status":"Round 1 - Virtual Interview","rating":4.0,"notes":"Strong candidate, good attitude","location":"Noida"},{"date":"2026-03-03","candidate":"Mansi Bansal","dept":"Product","role":"Fashion Model","source":"Naukri","owner":"Neha Raghuvanshi","status":"Screening","rating":"","notes":"","location":"Indore"},{"date":"2026-03-04","candidate":"Anjali Shukla","dept":"Human Resource","role":"HR Recruiter","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Noida"},{"date":"2026-03-04","candidate":"Zara Khan","dept":"Founders Office","role":"Executive Assistant","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-03-08","candidate":"Sarika Yadav","dept":"CSAT","role":"CSAT Executive","source":"Naukri","owner":"Vanshika Rawat","status":"Screening","rating":"","notes":"","location":"Pune"},{"date":"2026-03-09","candidate":"Aryan Rawat","dept":"CSAT","role":"CSAT Executive","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Round 1 - Virtual Interview","rating":3.0,"notes":"Decent interview, cleared basic round","location":"Indore"},{"date":"2026-03-09","candidate":"Uday Bhatia","dept":"Marketing","role":"Social Media Executive","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Screening","rating":"","notes":"","location":"Indore"},{"date":"2026-03-10","candidate":"Simran Malhotra","dept":"Marketing","role":"Social Media Executive","source":"LinkedIn","owner":"Neha Raghuvanshi","status":"Screening","rating":"","notes":"","location":"Indore"},{"date":"2026-03-10","candidate":"Lavanya Tripathi","dept":"Marketing","role":"Social Media Executive","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Applied","rating":"","notes":"","location":"Noida"},{"date":"2026-03-10","candidate":"Saurabh Patel","dept":"Founders Office","role":"Executive Assistant","source":"LinkedIn Premium","owner":"Neha Raghuvanshi","status":"Final Round","rating":3.5,"notes":"Good fit, panel happy","location":"Noida"},{"date":"2026-03-10","candidate":"Chirag Saxena","dept":"Sales","role":"Asst. Team Lead","source":"Naukri","owner":"Shreya Jha","status":"Rejected","rating":2.0,"notes":"Rejected post panel review","location":"Noida"},{"date":"2026-03-10","candidate":"Manish Sinha","dept":"Product","role":"FD Trainer","source":"LinkedIn","owner":"Shreya Jha","status":"Withdrawn","rating":"","notes":"Not interested after further thought","location":"Indore"},{"date":"2026-03-11","candidate":"Alisha Sharma","dept":"CSAT","role":"CSAT Executive","source":"LinkedIn","owner":"Shreya Jha","status":"Round 1 - Virtual Interview","rating":4.0,"notes":"Strong candidate, good attitude","location":"Indore"},{"date":"2026-03-12","candidate":"Aryan Kumar","dept":"CSAT","role":"CSAT Executive","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Screening","rating":3.0,"notes":"Good comm, exploring opportunities","location":"Noida"},{"date":"2026-03-14","candidate":"Ayesha Reddy","dept":"Sales","role":"Asst. Team Lead","source":"Instagram","owner":"Vanshika Rawat","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-03-15","candidate":"Zara Jain","dept":"Human Resource","role":"HR Recruiter","source":"LinkedIn Premium","owner":"Neha Raghuvanshi","status":"Offer Accepted","rating":5.0,"notes":"Excited joiner, culture fit","location":"Noida"},{"date":"2026-03-15","candidate":"Meera Kumar","dept":"Product","role":"Makeup Artist","source":"Naukri","owner":"Neha Raghuvanshi","status":"Applied","rating":"","notes":"","location":"Noida"},{"date":"2026-03-15","candidate":"Tushar Shukla","dept":"Founders Office","role":"Executive Assistant","source":"Instagram","owner":"Neha Raghuvanshi","status":"Joined","rating":4.5,"notes":"Active learner, great start","location":"Noida"},{"date":"2026-03-15","candidate":"Gauri Khan","dept":"Founders Office","role":"Executive Assistant","source":"Naukri","owner":"Shreya Jha","status":"Screening","rating":"","notes":"","location":"Pune"},{"date":"2026-03-16","candidate":"Jyoti Khanna","dept":"Marketing","role":"Graphic Designer","source":"Instagram","owner":"Shreya Jha","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-03-16","candidate":"Kunal Agarwal","dept":"CSAT","role":"CSAT Executive","source":"Naukri","owner":"Neha Raghuvanshi","status":"Screening","rating":"","notes":"","location":"Noida"},{"date":"2026-03-16","candidate":"Gauri Iyer","dept":"Sales","role":"Asst. Team Lead","source":"Instagram","owner":"Neha Raghuvanshi","status":"Final Round","rating":3.5,"notes":"Good fit, panel happy","location":"Noida"},{"date":"2026-03-18","candidate":"Komal Mehta","dept":"Sales","role":"Sr BDA","source":"Instagram","owner":"Vanshika Rawat","status":"Final Round","rating":4.5,"notes":"CEO approved, exceptional candidate","location":"Noida"},{"date":"2026-03-19","candidate":"Dhruv Chauhan","dept":"Sales","role":"BDA","source":"Naukri","owner":"Neha Raghuvanshi","status":"Withdrawn","rating":"","notes":"Not interested after further thought","location":"Pune"},{"date":"2026-03-19","candidate":"Vivek Tiwari","dept":"Marketing","role":"Graphic Designer","source":"Referral","owner":"Neha Raghuvanshi","status":"Withdrawn","rating":"","notes":"Candidate withdrew - got another offer","location":"Indore"},{"date":"2026-03-21","candidate":"Akash Sinha","dept":"Sales","role":"Sr BDA","source":"LinkedIn Premium","owner":"Vanshika Rawat","status":"Screening","rating":"","notes":"","location":"Pune"},{"date":"2026-03-23","candidate":"Yash Kumar","dept":"Product","role":"FD Trainer","source":"LinkedIn","owner":"Vanshika Rawat","status":"Screening","rating":"","notes":"","location":"Pune"},{"date":"2026-03-24","candidate":"Lavanya Agarwal","dept":"Marketing","role":"Social Media Executive","source":"Naukri","owner":"Vanshika Rawat","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Pune"},{"date":"2026-03-25","candidate":"Kavya Bhatia","dept":"Product","role":"FD Trainer","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Offer Made","rating":4.5,"notes":"Offer rolled out, awaiting confirmation","location":"Pune"},{"date":"2026-03-25","candidate":"Pranav Bhatia","dept":"Product","role":"Fashion Model","source":"Direct/Other","owner":"Shreya Jha","status":"Offer Made","rating":4.5,"notes":"Offer rolled out, awaiting confirmation","location":"Noida"},{"date":"2026-03-27","candidate":"Tanvi Mehta","dept":"Founders Office","role":"Executive Assistant","source":"LinkedIn Premium","owner":"Shreya Jha","status":"Screening","rating":3.0,"notes":"Good comm, exploring opportunities","location":"Indore"},{"date":"2026-03-28","candidate":"Nikhil Joshi","dept":"Human Resource","role":"HR Recruiter","source":"LinkedIn","owner":"Shreya Jha","status":"Round 2 - Assessment","rating":4.0,"notes":"Performed well in assessment","location":"Pune"},{"date":"2026-03-28","candidate":"Nisha Joshi","dept":"Human Resource","role":"HR Executive","source":"Direct/Other","owner":"Shreya Jha","status":"Screening","rating":2.0,"notes":"Average energy, need to follow up","location":"Indore"},{"date":"2026-03-28","candidate":"Ankit Shah","dept":"CSAT","role":"CSAT Executive","source":"Direct/Other","owner":"Shreya Jha","status":"Applied","rating":"","notes":"","location":"Pune"}];
+
+// ── OFFERS DATA ──
+var _offers = [{"id":1,"name":"Vaibhav Choudhary","role":"HR Executive","dept":"Human Resource","status":"Offer Accepted","offerdate":"2026-01-12","joindate":"","notes":"Joining confirmed, documents submitted"},{"id":2,"name":"Yash Desai","role":"HR Recruiter","dept":"Human Resource","status":"Offer Accepted","offerdate":"2026-01-14","joindate":"","notes":"Joining confirmed, documents submitted"},{"id":3,"name":"Manish Rawat","role":"HR Recruiter","dept":"Human Resource","status":"Joined","offerdate":"2026-02-02","joindate":"2026-02-02","notes":"Smooth onboarding, ramping well"},{"id":4,"name":"Omkar Iyer","role":"CSAT Executive","dept":"CSAT","status":"Joined","offerdate":"2026-02-02","joindate":"2026-02-02","notes":"Active learner, great start"},{"id":5,"name":"Sakshi Chauhan","role":"Social Media Executive","dept":"Marketing","status":"Joined","offerdate":"2026-02-19","joindate":"2026-02-19","notes":"Active learner, great start"},{"id":6,"name":"Sahil Agarwal","role":"CSAT Executive","dept":"CSAT","status":"Offer Made","offerdate":"2026-02-24","joindate":"","notes":"Offer rolled out, awaiting confirmation"},{"id":7,"name":"Varsha Shukla","role":"Graphic Designer","dept":"Marketing","status":"Offer Made","offerdate":"2026-02-25","joindate":"","notes":"Offer rolled out, awaiting confirmation"},{"id":8,"name":"Riya Mehta","role":"BDA","dept":"Sales","status":"Joined","offerdate":"2026-03-03","joindate":"2026-03-03","notes":"Smooth onboarding, ramping well"},{"id":9,"name":"Zara Jain","role":"HR Recruiter","dept":"Human Resource","status":"Offer Accepted","offerdate":"2026-03-15","joindate":"","notes":"Excited joiner, culture fit"},{"id":10,"name":"Tushar Shukla","role":"Executive Assistant","dept":"Founders Office","status":"Joined","offerdate":"2026-03-15","joindate":"2026-03-15","notes":"Active learner, great start"},{"id":11,"name":"Kavya Bhatia","role":"FD Trainer","dept":"Product","status":"Offer Made","offerdate":"2026-03-25","joindate":"","notes":"Offer rolled out, awaiting confirmation"},{"id":12,"name":"Pranav Bhatia","role":"Fashion Model","dept":"Product","status":"Offer Made","offerdate":"2026-03-25","joindate":"","notes":"Offer rolled out, awaiting confirmation"},{"id":13,"name":"Zoya Kaur","role":"Content Writer","dept":"Marketing","status":"Offer Declined","offerdate":"2026-01-24","joindate":"","notes":"Declined - accepted another offer"},{"id":15,"name":"Varsha Sharma","role":"Sr BDA","dept":"Sales","status":"Offer Declined","offerdate":"2026-02-04","joindate":"","notes":"Declined - accepted another offer"}];
+
+// ── EOD DATA ──
+var eodReports = [];
+var eodActiveRec = '';
+var ivTodayActive = false;
+
+// ── HIRING TARGETS ──
+var HS_TARGETS = {
+  'Executive Assistant':   {target:3, location:'Noida'},
+  'CSAT Executive':        {target:4, location:'Noida'},
+  'HR Recruiter':          {target:2, location:'Noida'},
+  'HR Executive':          {target:2, location:'Noida'},
+  'Asst. Team Lead':       {target:2, location:'Pune'},
+  'FD Trainer':            {target:2, location:'Noida'},
+  'Social Media Executive':{target:2, location:'Indore'},
+  'BDA':                   {target:3, location:'Noida'},
+  'Graphic Designer':      {target:1, location:'Pune'},
+  'Makeup Artist':         {target:2, location:'Noida'},
+  'Sr BDA':                {target:2, location:'Noida'},
+  'Content Writer':        {target:1, location:'Indore'},
+  'Fashion Model':         {target:2, location:'Noida'},
+  'FD Trainer Intern':     {target:2, location:'Pune'}
+};
+var HS_PIPELINE_STAGES = ['Applied','Screening','Shortlisted','Interview Scheduled','Call Back','Round 1 - Virtual Interview','Round 2 - Assessment','Final Round','Offer Made','Offer Accepted','Joined'];
+var HS_ACTIVE_STAGES = ['Applied','Screening','Shortlisted','Interview Scheduled','Call Back','Round 1 - Virtual Interview','Round 2 - Assessment','Final Round','Offer Made','Offer Accepted'];
+
+// ── STATUS STYLING ──
+var SBG = {"Applied":"rgba(148,163,184,0.15)","Screening":"rgba(96,165,250,0.15)","Shortlisted":"rgba(249,115,22,0.15)","Interview Scheduled":"rgba(167,139,250,0.15)","Call Back":"rgba(251,191,36,0.15)","On Hold":"rgba(251,191,36,0.12)","Rejected":"rgba(248,113,113,0.1)","Rejected (Post-Interview)":"rgba(248,113,113,0.15)","Withdrawn":"rgba(100,116,139,0.1)","DNP":"rgba(251,191,36,0.1)","Round 1 - Virtual Interview":"rgba(129,140,248,0.15)","Round 2 - Assessment":"rgba(167,139,250,0.15)","Final Round":"rgba(249,115,22,0.15)","Offer Made":"rgba(52,211,153,0.2)","Offer Accepted":"rgba(52,211,153,0.25)","Joined":"rgba(16,185,129,0.2)"};
+var SCL = {"Applied":"var(--muted2)","Screening":"var(--blue)","Shortlisted":"var(--accent)","Interview Scheduled":"var(--purple)","Call Back":"var(--yellow)","On Hold":"var(--yellow)","Rejected":"var(--red)","Rejected (Post-Interview)":"var(--red)","Withdrawn":"var(--muted2)","DNP":"var(--yellow)","Round 1 - Virtual Interview":"#818cf8","Round 2 - Assessment":"var(--purple)","Final Round":"var(--accent)","Offer Made":"#34d399","Offer Accepted":"var(--green)","Joined":"#10b981"};
+var OF_STATUS_CLR = {"Offer Made":"#34d399","Offer Accepted":"var(--green)","Joined":"#10b981","Offer Declined":"var(--red)"};
+var OF_STATUS_BG = {"Offer Made":"rgba(52,211,153,0.15)","Offer Accepted":"rgba(52,211,153,0.25)","Joined":"rgba(16,185,129,0.2)","Offer Declined":"rgba(248,113,113,0.12)"};
+
+// ── TABLE STATE ──
+var ivSK = "date", ivSD = "desc", ivPg = 1, IV_PS = 12;
+var ivV = "offers", ivSel = null, ivBulk = new Set();
+
+function ivGet(id) { return document.getElementById(id); }
+function ivVal(id) { var el=ivGet(id); return el ? el.value : ""; }
+
+function ivFiltered() {
+  var q = ivVal("iv-search-input").toLowerCase();
+  var today = new Date().toISOString().slice(0,10);
+  var dept = ivVal("iv-filter-dept");
+  var role = ivVal("iv-filter-role");
+  var status = ivVal("iv-filter-status");
+  var source = ivVal("iv-filter-source");
+  var owner = ivVal("iv-filter-owner");
+  var location = ivVal("iv-filter-location");
+  return window._candidates.filter(function(c) {
+    if (ivTodayActive && c.date !== today) return false;
+    if (dept && c.dept !== dept) return false;
+    if (role && c.role !== role) return false;
+    if (status && c.status !== status) return false;
+    if (source && c.source !== source) return false;
+    if (owner && c.owner !== owner) return false;
+    if (location && c.location !== location) return false;
+    if (q) { var hay = (c.candidate + c.role + c.dept).toLowerCase(); if (hay.indexOf(q) < 0) return false; }
+    return true;
+  });
+}
+
+function ivSorted(data) {
+  return data.slice().sort(function(a, b) {
+    var av = a[ivSK] || "", bv = b[ivSK] || "";
+    var r = av > bv ? 1 : av < bv ? -1 : 0;
+    return ivSD === "asc" ? r : -r;
+  });
+}
+
+function stars(r) {
+  if (!r) return "-";
+  var s = "";
+  for (var i = 1; i <= 5; i++) s += i <= Math.round(r) ? "★" : "☆";
+  return s;
+}
+function rClr(r) { return !r ? "var(--muted)" : r >= 4 ? "var(--green)" : r >= 3 ? "var(--yellow)" : "var(--red)"; }
+
+function updateKPIs(data) {
+  var t = data.length, scr = 0, r1 = 0, r2 = 0, fin = 0, offer = 0, joined = 0, rej = 0, dnp = 0;
+  data.forEach(function(c) {
+    var s = c.status;
+    if (s === "Screening" || s === "Shortlisted" || s === "Interview Scheduled" || s === "Call Back") scr++;
+    if (s === "Round 1 - Virtual Interview") r1++;
+    if (s === "Round 2 - Assessment") r2++;
+    if (s === "Final Round") fin++;
+    if (s === "Offer Made" || s === "Offer Accepted") offer++;
+    if (s === "Joined") joined++;
+    if (s === "Rejected" || s === "Rejected (Post-Interview)") rej++;
+    if (s === "DNP") dnp++;
+  });
+  ivGet("ivk-total").textContent = t;
+  ivGet("ivk-screening").textContent = scr;
+  ivGet("ivk-r1").textContent = r1;
+  ivGet("ivk-r2").textContent = r2;
+  ivGet("ivk-final").textContent = fin;
+  ivGet("ivk-offer").textContent = offer;
+  ivGet("ivk-joined").textContent = joined;
+  ivGet("ivk-rejected").textContent = rej;
+  ivGet("ivk-dnp").textContent = dnp;
+  var totalOffers = offer + joined;
+  ivGet("ivk-conv").textContent = t > 0 ? Math.round(totalOffers / t * 100) + "%" : "-";
+}
+
+
+
+
+// ── ANALYTICS BARS ──
+function makeBar(entries, colors) {
+  if (!entries.length) return '<div style="color:var(--muted);font-size:0.75rem;padding:0.5rem">No data</div>';
+  var max = Math.max.apply(null, entries.map(function(e){return e[1];}));
+  return entries.map(function(e, i) {
+    var pct = max ? Math.round(e[1] / max * 100) : 0;
+    var clr = colors[i % colors.length];
+    return '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">'
+      + '<div style="font-size:0.68rem;color:var(--muted2);width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + e[0] + '</div>'
+      + '<div style="flex:1;background:var(--surface2);border-radius:4px;height:8px;overflow:hidden">'
+      + '<div style="width:' + pct + '%;background:' + clr + ';height:100%;border-radius:4px"></div></div>'
+      + '<div style="font-size:0.68rem;color:var(--muted2);width:22px;text-align:right">' + e[1] + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function renderAnalytics(data) {
+  var CLRS = ["#f97316","#60a5fa","#34d399","#a78bfa","#fbbf24","#f87171"];
+  // Source
+  var src = {}; data.forEach(function(c) { src[c.source] = (src[c.source]||0)+1; });
+  ivGet("iv-src-chart").innerHTML = makeBar(Object.entries(src).sort(function(a,b){return b[1]-a[1];}), CLRS);
+  // Dept
+  var dept = {}; data.forEach(function(c) { dept[c.dept] = (dept[c.dept]||0)+1; });
+  ivGet("iv-dept-chart").innerHTML = makeBar(Object.entries(dept).sort(function(a,b){return b[1]-a[1];}), CLRS);
+  // Volume trend
+  var days = {}; data.forEach(function(c) { days[c.date] = (days[c.date]||0)+1; });
+  var sorted = Object.entries(days).sort(function(a,b){return a[0]>b[0]?1:-1;});
+  var svg = ivGet("iv-vol-svg");
+  if (svg && sorted.length > 1) {
+    var W = svg.parentElement.offsetWidth || 500, H = 140;
+    var PL=30,PR=16,PT=14,PB=28;
+    var cW=W-PL-PR, cH=H-PT-PB;
+    var vals = sorted.map(function(e){return e[1];}), n = sorted.length;
+    var mx = Math.max.apply(null,vals)*1.2||1;
+    var xp = function(i){return PL+(n>1?i/(n-1)*cW:cW/2);};
+    var yp = function(v){return PT+cH-v/mx*cH;};
+    var out = "<defs><linearGradient id='ivgrad' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='#f97316' stop-opacity='0.3'/><stop offset='100%' stop-color='#f97316' stop-opacity='0'/></linearGradient></defs>";
+    for(var ri=0;ri<=3;ri++){var ry=PT+(ri/3)*cH;out+="<line x1='"+PL+"' y1='"+ry+"' x2='"+(PL+cW)+"' y2='"+ry+"' stroke='rgba(255,255,255,0.04)' stroke-width='1'/><text x='"+(PL-4)+"' y='"+(ry+3)+"' text-anchor='end' fill='#64748b' font-size='8'>"+Math.round(mx*(1-ri/3))+"</text>";}
+    var step=n<=10?1:n<=20?2:3;
+    sorted.forEach(function(e,i){if(i%step===0||i===n-1)out+="<text x='"+xp(i)+"' y='"+(H-5)+"' text-anchor='middle' fill='#64748b' font-size='8'>"+e[0].slice(5)+"</text>";});
+    var area="M "+xp(0)+","+(H-PB);sorted.forEach(function(_,i){area+=" L "+xp(i)+","+yp(vals[i]);});area+=" L "+xp(n-1)+","+(H-PB)+" Z";
+    out+="<path d='"+area+"' fill='url(#ivgrad)'/>";
+    var line="";sorted.forEach(function(_,i){line+=(i===0?"M ":"L ")+xp(i)+","+yp(vals[i])+" ";});
+    out+="<path d='"+line+"' fill='none' stroke='#f97316' stroke-width='2'/>";
+    sorted.forEach(function(_,i){out+="<circle cx='"+xp(i)+"' cy='"+yp(vals[i])+"' r='3' fill='#f97316' stroke='#080b14' stroke-width='1.5'/>";});
+    svg.setAttribute("viewBox","0 0 "+W+" "+H); svg.innerHTML=out;
+  }
+  // Funnel
+  var fStages=[["Applied","var(--muted2)"],["Screening","var(--blue)"],["Shortlisted","var(--accent)"],["Interview Scheduled","var(--purple)"],["Rejected","var(--red)"],["Withdrawn","var(--muted)"],["DNP","var(--yellow)"]];
+  var tot=data.length||1;
+  var fh="<div style='display:flex;flex-direction:column;gap:0.5rem;margin-top:0.4rem'>";
+  fStages.forEach(function(fs){
+    var cnt=data.filter(function(c){return c.status===fs[0]||c.status===fs[0]+" (Post-Interview)";}).length;
+    var pct=Math.round(cnt/tot*100);
+    fh+="<div><div style='display:flex;justify-content:space-between;margin-bottom:0.2rem'><span style='font-size:0.7rem;color:var(--muted2)'>"+fs[0]+"</span><span style='font-size:0.7rem;font-weight:600;color:"+fs[1]+"'>"+cnt+" ("+pct+"%)</span></div>"
+      +"<div style='background:var(--surface2);border-radius:4px;height:8px;overflow:hidden'><div style='width:"+pct+"%;height:100%;background:"+fs[1]+";border-radius:4px;opacity:0.8'></div></div></div>";
+  });
+  ivGet("iv-funnel").innerHTML=fh+"</div>";
+  // Recruiter
+  var own={};
+  data.forEach(function(c){
+    if(!own[c.owner]) own[c.owner]={t:0,advanced:0,offers:0,joined:0,r:0};
+    own[c.owner].t++;
+    if(["Round 1 - Virtual Interview","Round 2 - Assessment","Final Round","Offer Made","Offer Accepted","Joined"].indexOf(c.status)>=0) own[c.owner].advanced++;
+    if(["Offer Made","Offer Accepted","Joined"].indexOf(c.status)>=0) own[c.owner].offers++;
+    if(c.status==="Joined") own[c.owner].joined++;
+    if(c.status.indexOf("Rejected")>=0||c.status==="DNP"||c.status==="Withdrawn") own[c.owner].r++;
+  });
+  var rh="<div style='display:flex;flex-direction:column;gap:0.6rem;margin-top:0.4rem'>";
+  Object.entries(own).sort(function(a,b){return b[1].t-a[1].t;}).forEach(function(e,i){
+    var d=e[1];
+    var advPct=d.t>0?Math.round(d.advanced/d.t*100):0;
+    rh+="<div style='background:var(--surface2);border-radius:10px;padding:0.7rem'>"
+      +"<div style='display:flex;justify-content:space-between;margin-bottom:0.5rem'><span style='font-size:0.78rem;font-weight:600'>"+e[0]+"</span><span style='font-size:0.68rem;color:var(--muted2)'>"+d.t+" sourced</span></div>"
+      +"<div style='display:flex;gap:0.8rem;flex-wrap:wrap'>"
+      +"<div style='text-align:center'><div style='font-size:0.63rem;color:var(--muted2);margin-bottom:0.1rem'>Advanced</div><div style='font-size:0.95rem;font-weight:700;color:"+CLRS[i%3]+"'>"+d.advanced+"</div></div>"
+      +"<div style='text-align:center'><div style='font-size:0.63rem;color:var(--muted2);margin-bottom:0.1rem'>Offers</div><div style='font-size:0.95rem;font-weight:700;color:#34d399'>"+d.offers+"</div></div>"
+      +"<div style='text-align:center'><div style='font-size:0.63rem;color:var(--muted2);margin-bottom:0.1rem'>Joined</div><div style='font-size:0.95rem;font-weight:700;color:var(--green)'>"+d.joined+"</div></div>"
+      +"<div style='text-align:center'><div style='font-size:0.63rem;color:var(--muted2);margin-bottom:0.1rem'>Drop-off</div><div style='font-size:0.95rem;font-weight:700;color:var(--red)'>"+d.r+"</div></div>"
+      +"<div style='text-align:center'><div style='font-size:0.63rem;color:var(--muted2);margin-bottom:0.1rem'>Adv%</div><div style='font-size:0.95rem;font-weight:700;color:var(--yellow)'>"+advPct+"%</div></div>"
+      +"</div>"
+      +"<div style='margin-top:0.5rem;background:var(--surface3);border-radius:4px;height:5px;overflow:hidden'><div style='width:"+advPct+"%;height:100%;background:"+CLRS[i%3]+";border-radius:4px'></div></div>"
+      +"</div>";
+  });
+  ivGet("iv-recruiter").innerHTML=rh+"</div>";
+  // Ratings
+  var rated=data.filter(function(c){return c.rating;}), bk=[0,0,0,0,0];
+  rated.forEach(function(c){var r=Math.round(c.rating)-1;if(r>=0&&r<5)bk[r]++;});
+  var mx2=Math.max.apply(null,bk)||1;
+  var RC=["#f87171","#fb923c","#fbbf24","#60a5fa","#34d399"];
+  var sh="<div style='display:flex;align-items:flex-end;gap:0.6rem;height:80px;margin-top:0.8rem;padding:0 0.5rem'>";
+  for(var ri=0;ri<5;ri++){var bh=Math.round(bk[ri]/mx2*72)||2;sh+="<div style='flex:1;display:flex;flex-direction:column;align-items:center;gap:0.3rem'><div style='font-size:0.65rem;color:var(--muted2)'>"+bk[ri]+"</div><div style='width:100%;height:"+bh+"px;background:"+RC[ri]+";border-radius:4px 4px 0 0'></div><div style='font-size:0.68rem;color:var(--muted2)'>"+(ri+1)+"★</div></div>";}
+  ivGet("iv-ratings").innerHTML=sh+"</div><div style='font-size:0.7rem;color:var(--muted2);text-align:center;margin-top:0.5rem'>"+rated.length+" of "+data.length+" rated</div>";
+}
+
+// ── OFFERS / PIPELINE FUNNEL ──
+function offerRender() {
+  var allData = ivFiltered();
+  renderAnalytics(allData);
+  var all = window._candidates || [];
+  var STAGES = [
+    { key:"screening", label:"Screening", color:"#60a5fa", statuses:["Screening","Shortlisted","Interview Scheduled","Call Back"] },
+    { key:"r1", label:"Round 1", color:"#818cf8", statuses:["Round 1 - Virtual Interview"] },
+    { key:"r2", label:"Round 2", color:"#a78bfa", statuses:["Round 2 - Assessment"] },
+    { key:"final", label:"Final Round", color:"#f97316", statuses:["Final Round"] },
+    { key:"offer", label:"Offers", color:"#34d399", statuses:["Offer Made","Offer Accepted"] },
+    { key:"joined", label:"Joined", color:"#10b981", statuses:["Joined"] },
+  ];
+  var stageCounts = {};
+  STAGES.forEach(function(s) { stageCounts[s.key] = all.filter(function(c) { return s.statuses.indexOf(c.status) >= 0; }).length; });
+  var maxCount = Math.max.apply(null, STAGES.map(function(s){ return stageCounts[s.key]; })) || 1;
+  var total = stageCounts["screening"] || 1;
+  var fw = document.getElementById("of-funnel-wrap");
+  var fl = document.getElementById("of-funnel-labels");
+  var cs = document.getElementById("of-conv-strip");
+  var ft = document.getElementById("of-funnel-total");
+  if (ft) ft.textContent = total + " total candidates in pipeline";
+  if (fw) {
+    fw.innerHTML = STAGES.map(function(s) {
+      var n = stageCounts[s.key];
+      var barH = Math.max(Math.round(n / maxCount * 140), n > 0 ? 8 : 3);
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:0.3rem">'
+        + '<div style="font-size:0.85rem;font-weight:700;color:' + s.color + '">' + n + '</div>'
+        + '<div style="width:100%;background:' + s.color + ';border-radius:6px 6px 0 0;height:' + barH + 'px;opacity:0.85;min-height:4px"></div>'
+        + '</div>';
+    }).join('');
+  }
+  if (fl) fl.innerHTML = STAGES.map(function(s) { return '<div style="flex:1;text-align:center;font-size:0.63rem;color:var(--muted2)">' + s.label + '</div>'; }).join('');
+  if (cs) {
+    var convItems = [
+      {label:"Screening → R1", from:"screening", to:"r1"},
+      {label:"R1 → R2", from:"r1", to:"r2"},
+      {label:"R2 → Final", from:"r2", to:"final"},
+      {label:"Final → Offer", from:"final", to:"offer"},
+      {label:"Offer → Joined", from:"offer", to:"joined"},
+      {label:"Overall", from:"screening", to:"joined"},
+    ];
+    cs.innerHTML = convItems.map(function(cv) {
+      var fromN = stageCounts[cv.from]||0, toN = stageCounts[cv.to]||0;
+      var pct = fromN > 0 ? Math.round(toN/fromN*100) : 0;
+      var clr = pct >= 50 ? "var(--green)" : pct >= 20 ? "var(--yellow)" : "var(--red)";
+      return '<div style="flex:1;text-align:center"><div style="font-size:0.95rem;font-weight:700;color:' + clr + '">' + pct + '%</div><div style="font-size:0.6rem;color:var(--muted2);margin-top:0.1rem">' + cv.label + '</div></div>';
+    }).join('');
+  }
+  // Onboardings table
+  var sorted = _offers.slice().sort(function(a,b){ var aj=a.joindate||"9999",bj=b.joindate||"9999"; return aj<bj?-1:aj>bj?1:0; });
+  var tbody = document.getElementById("of-tbody");
+  if (!tbody) return;
+  if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="8" class="no-entries"><div class="no-entries-icon">📅</div>No entries</td></tr>'; return; }
+  var today = new Date().toISOString().slice(0,10);
+  tbody.innerHTML = sorted.map(function(o) {
+    var bg = OF_STATUS_BG[o.status]||"rgba(100,116,139,0.1)";
+    var clr = OF_STATUS_CLR[o.status]||"var(--muted2)";
+    var daysLabel = "";
+    if (o.joindate) {
+      var diff = Math.round((new Date(o.joindate) - new Date(today))/86400000);
+      if (diff>0) daysLabel='<span style="font-size:0.6rem;background:rgba(52,211,153,0.15);color:var(--green);padding:0.1rem 0.35rem;border-radius:8px;margin-left:0.4rem">in '+diff+'d</span>';
+      else if (diff===0) daysLabel='<span style="font-size:0.6rem;background:rgba(251,191,36,0.2);color:var(--yellow);padding:0.1rem 0.35rem;border-radius:8px;margin-left:0.4rem">Today!</span>';
+    }
+    return '<tr><td style="font-weight:600;font-size:0.8rem">'+o.name+'</td>'
+      +'<td style="font-size:0.73rem"><span style="background:var(--surface2);padding:0.1rem 0.4rem;border-radius:4px">'+o.role+'</span></td>'
+      +'<td style="font-size:0.72rem;color:var(--muted2)">'+o.dept+'</td>'
+      +'<td style="font-size:0.72rem;color:var(--muted2)">'+(o.offerdate||'—')+'</td>'
+      +'<td style="font-size:0.72rem">'+(o.joindate?o.joindate+daysLabel:'—')+'</td>'
+      +'<td><span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:20px;font-size:0.63rem;font-weight:600;background:'+bg+';color:'+clr+'">'+o.status+'</span></td>'
+      +'<td style="font-size:0.7rem;color:var(--muted2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(o.notes||'—')+'</td>'
+      +'<td><button class="del-btn" onclick="offerDelete('+o.id+')" title="Remove">✕</button></td></tr>';
+  }).join('');
+}
+window.offerDelete = function(id) { _offers = _offers.filter(function(o){return o.id!==id;}); offerRender(); };
+window.offerExport = function() {
+  var headers = ["Name","Role","Dept","Offer Date","Joining Date","Status","Notes"];
+  var rows = [headers].concat(_offers.map(function(o){return[o.name,o.role,o.dept,o.offerdate||"",o.joindate||"",o.status,o.notes||""];}));
+  var csv = rows.map(function(r){return r.map(function(x){return'"'+String(x).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download="onboardings.csv";a.click();
+};
+
+// ── MAIN RENDER ──
+window.ivRender = function() {
+  var data = ivFiltered();
+  updateKPIs(data);
+  if (ivV === "offers") { offerRender(); return; }
+};
+
+window.ivSetView = function(view, btn) {
+  ivV = view;
+  document.querySelectorAll(".iv-view-btn").forEach(function(b){b.classList.remove("active");});
+  if (btn) btn.classList.add("active");
+  ivGet("ivv-offers").style.display = view === "offers" ? "block" : "none";
+  ivGet("ivv-eod").style.display = view === "eod" ? "block" : "none";
+  ivGet("ivv-hiring").style.display = view === "hiring" ? "block" : "none";
+  if (view === "eod") { eodInit(); return; }
+  if (view === "hiring") { hsRender(); return; }
+  if (view === "offers") { offerRender(); return; }
+  window.ivRender();
+};
+
+window.ivSort = function(key) {
+  if (ivSK === key) ivSD = ivSD === "asc" ? "desc" : "asc"; else { ivSK = key; ivSD = "asc"; }
+  ivPg = 1; window.ivRender();
+};
+window.ivExportCSV = function() {
+  var data = ivFiltered();
+  var hdr = ["Date","Candidate","Department","Role","Source","Owner","Status","Rating","Location","Notes"];
+  var rows = data.map(function(c){return[c.date,c.candidate,c.dept,c.role,c.source,c.owner,c.status,c.rating,c.location||"",c.notes||""];});
+  var csv = [hdr].concat(rows).map(function(r){return r.map(function(x){return'"'+String(x||"").replace(/"/g,'""')+'"';}).join(",");}).join("\n");
+  var a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download="pipeline.csv";a.click();
+};
+window.ivToggleToday = function(btn) {
+  ivTodayActive = !ivTodayActive;
+  btn.classList.toggle("active", ivTodayActive);
+  ivPg = 1;
+  window.ivRender();
+};
+
+// ── EOD FUNCTIONS ──
+function eodInit() {
+  var today = new Date().toISOString().slice(0,10);
+  var dateEl = document.getElementById('eod-date');
+  if (dateEl) dateEl.value = today;
+  var lbl = document.getElementById('eod-date-label');
+  if (lbl) lbl.textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  eodRenderTabs(); eodRenderLog();
+}
+function eodRenderTabs() {
+  var recs = ['All', 'Neha Raghuvanshi', 'Shreya Jha', 'Vanshika Rawat'];
+  var wrap = document.getElementById('eod-recruiter-tabs');
+  if (!wrap) return;
+  wrap.innerHTML = recs.map(function(r){
+    var active = (eodActiveRec === r || (r === 'All' && eodActiveRec === '')) ? ' active' : '';
+    return '<button class="eod-rec-tab'+active+'" onclick="eodSetRec(\''+r+'\')">'+r+'</button>';
+  }).join('');
+}
+window.eodSetRec = function(rec) {
+  eodActiveRec = rec === 'All' ? '' : rec;
+  var sel = document.getElementById('eod-recruiter');
+  if (sel && rec !== 'All') sel.value = rec;
+  eodRenderTabs(); eodRenderLog();
+};
+window.eodSubmit = function() {
+  var recruiter = document.getElementById('eod-recruiter')?.value;
+  var date = document.getElementById('eod-date')?.value;
+  if (!recruiter || !date) { document.getElementById('eod-submit-msg').textContent = '⚠ Please select recruiter and date.'; document.getElementById('eod-submit-msg').style.color='var(--red)'; return; }
+  var g = function(id){return document.getElementById(id)?.value||'';};
+  var gi = function(id){return parseInt(document.getElementById(id)?.value)||0;};
+  var entry = {id:Date.now(),date:date,recruiter:recruiter,location:g('eod-location'),
+    resumeShortlisting:{profile:g('eod-rs-profile'),screened:gi('eod-rs-screened'),shortlisted:gi('eod-rs-shortlisted')},
+    screeningCalls:{profile:g('eod-sc-profile'),calls:gi('eod-sc-calls'),shortlisted:gi('eod-sc-shortlisted')},
+    virtualRounds:{profile:g('eod-vr-profile'),rounds:gi('eod-vr-rounds'),shortlisted:gi('eod-vr-shortlisted')},
+    assignment:{profile:g('eod-ar-profile'),type:g('eod-ar-type'),conducted:gi('eod-ar-conducted'),selected:gi('eod-ar-selected')},
+    finalRound:{profile:g('eod-fr-profile'),rounds:gi('eod-fr-rounds'),selected:gi('eod-fr-selected')},
+    otherTasks:g('eod-other'),
+    submittedAt:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})};
+  var existing = eodReports.findIndex(function(r){return r.recruiter===entry.recruiter&&r.date===entry.date;});
+  if(existing>=0){eodReports[existing]=entry;document.getElementById('eod-submit-msg').textContent='✓ Report updated!';}
+  else{eodReports.unshift(entry);document.getElementById('eod-submit-msg').textContent='✓ EOD report submitted!';}
+  document.getElementById('eod-submit-msg').style.color='var(--green)';
+  setTimeout(function(){document.getElementById('eod-submit-msg').textContent='';},3000);
+  eodRenderLog(); eodRenderTabs();
+};
+window.eodClear = function() {
+  ['eod-rs-profile','eod-rs-screened','eod-rs-shortlisted','eod-sc-profile','eod-sc-calls','eod-sc-shortlisted','eod-vr-profile','eod-vr-rounds','eod-vr-shortlisted','eod-ar-profile','eod-ar-type','eod-ar-conducted','eod-ar-selected','eod-fr-profile','eod-fr-rounds','eod-fr-selected','eod-other','eod-location'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('eod-submit-msg').textContent='';
+};
+function eodRenderLog() {
+  var wrap = document.getElementById('eod-log-table'); if(!wrap) return;
+  var filtered = eodActiveRec ? eodReports.filter(function(r){return r.recruiter===eodActiveRec;}) : eodReports;
+  if(!filtered.length){wrap.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--muted2);font-size:0.78rem">No EOD reports submitted yet.</div>';return;}
+  var COLORS={rs:'#60a5fa',sc:'#a78bfa',vr:'#f97316',ar:'#fbbf24',fr:'#34d399'};
+  var html='';
+  filtered.forEach(function(r,idx){
+    var rs=r.resumeShortlisting||{},sc=r.screeningCalls||{},vr=r.virtualRounds||{},ar=r.assignment||{},fr=r.finalRound||{};
+    html+='<div style="background:var(--surface2);border-radius:12px;margin-bottom:0.8rem;overflow:hidden">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;padding:0.7rem 1rem;background:var(--surface3);border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;align-items:center;gap:0.8rem">'
+          +'<span style="font-weight:700;color:var(--accent);font-size:0.82rem">'+r.recruiter+'</span>'
+          +'<span style="font-size:0.68rem;color:var(--muted2);background:var(--surface2);padding:0.15rem 0.5rem;border-radius:4px">'+r.date+'</span>'
+          +(r.location?'<span style="font-size:0.68rem;color:#2dd4bf;background:rgba(45,212,191,0.1);padding:0.15rem 0.5rem;border-radius:4px">'+r.location+'</span>':'')
+          +'<span style="font-size:0.65rem;color:var(--muted2)">'+r.submittedAt+'</span>'
+        +'</div>'
+        +'<div style="display:flex;gap:0.4rem">'
+          +'<button onclick="eodEditEntry('+idx+')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:0.22rem 0.65rem;color:var(--muted2);font-size:0.68rem;cursor:pointer;font-family:inherit">✏ Edit</button>'
+          +'<button onclick="eodDeleteEntry('+idx+')" style="background:none;border:1px solid rgba(248,113,113,0.3);border-radius:6px;padding:0.22rem 0.65rem;color:#f87171;font-size:0.68rem;cursor:pointer;font-family:inherit">✕ Delete</button>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1px solid var(--border)">'
+        +eodStageCell('📄 Resume',[[' Profile',rs.profile||'—'],['Screened',rs.screened||0],['Shortlisted',rs.shortlisted||0]],COLORS.rs)
+        +eodStageCell('📞 Screening',[['Profile',sc.profile||'—'],['Calls',sc.calls||0],['Shortlisted',sc.shortlisted||0]],COLORS.sc)
+        +eodStageCell('💻 Virtual',[['Profile',vr.profile||'—'],['Rounds',vr.rounds||0],['Shortlisted',vr.shortlisted||0]],COLORS.vr)
+        +eodStageCell('📝 Assignment',[['Profile',ar.profile||'—'],['Type',ar.type||'—'],['Conducted',ar.conducted||0],['Selected',ar.selected||0]],COLORS.ar)
+        +eodStageCell('🏁 Final',[['Profile',fr.profile||'—'],['Rounds',fr.rounds||0],['Selected',fr.selected||0]],COLORS.fr)
+      +'</div>'
+      +(r.otherTasks?'<div style="padding:0.6rem 1rem;font-size:0.72rem;color:var(--muted2)"><span style="color:var(--muted);font-weight:600;margin-right:0.4rem">Other:</span>'+r.otherTasks+'</div>':'')
+    +'</div>';
+  });
+  wrap.innerHTML=html;
+}
+function eodStageCell(title,rows,color){
+  return '<div style="padding:0.7rem 0.8rem;border-right:1px solid var(--border)">'
+    +'<div style="font-size:0.62rem;font-weight:700;color:'+color+';text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">'+title+'</div>'
+    +rows.map(function(row){var isNum=typeof row[1]==='number';return'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem"><span style="font-size:0.67rem;color:var(--muted2)">'+row[0]+'</span><span style="font-size:0.72rem;font-weight:'+(isNum?'700':'500')+';color:'+(isNum?color:'var(--text)')+'">'+row[1]+'</span></div>';}).join('')
+  +'</div>';
+}
+window.eodEditEntry = function(idx) {
+  var filtered = eodActiveRec ? eodReports.filter(function(r){return r.recruiter===eodActiveRec;}) : eodReports;
+  var entry=filtered[idx]; var realIdx=eodReports.indexOf(entry); if(!entry)return;
+  var s=function(id,val){var el=document.getElementById(id);if(el)el.value=val||'';};
+  s('eod-date',entry.date);s('eod-recruiter',entry.recruiter);s('eod-location',entry.location);
+  var rs=entry.resumeShortlisting||{},sc=entry.screeningCalls||{},vr=entry.virtualRounds||{},ar=entry.assignment||{},fr=entry.finalRound||{};
+  s('eod-rs-profile',rs.profile);s('eod-rs-screened',rs.screened);s('eod-rs-shortlisted',rs.shortlisted);
+  s('eod-sc-profile',sc.profile);s('eod-sc-calls',sc.calls);s('eod-sc-shortlisted',sc.shortlisted);
+  s('eod-vr-profile',vr.profile);s('eod-vr-rounds',vr.rounds);s('eod-vr-shortlisted',vr.shortlisted);
+  s('eod-ar-profile',ar.profile);s('eod-ar-type',ar.type);s('eod-ar-conducted',ar.conducted);s('eod-ar-selected',ar.selected);
+  s('eod-fr-profile',fr.profile);s('eod-fr-rounds',fr.rounds);s('eod-fr-selected',fr.selected);
+  s('eod-other',entry.otherTasks);
+  eodReports.splice(realIdx,1);eodRenderLog();
+  document.getElementById('eod-form-wrap').scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('eod-submit-msg').textContent='Editing — resubmit to save';
+  document.getElementById('eod-submit-msg').style.color='var(--yellow)';
+};
+window.eodDeleteEntry = function(idx) {
+  var filtered=eodActiveRec?eodReports.filter(function(r){return r.recruiter===eodActiveRec;}):eodReports;
+  var entry=filtered[idx];var realIdx=eodReports.indexOf(entry);
+  if(realIdx>=0){eodReports.splice(realIdx,1);eodRenderLog();eodRenderTabs();}
+};
+window.eodExport = function() {
+  if(!eodReports.length){alert('No EOD reports to export.');return;}
+  var headers=['Date','Recruiter','Location','RS-Screened','RS-Shortlisted','SC-Calls','SC-Shortlisted','VR-Rounds','VR-Shortlisted','AR-Conducted','AR-Selected','FR-Rounds','FR-Selected','Other Tasks'];
+  var rows=eodReports.map(function(r){var rs=r.resumeShortlisting||{},sc=r.screeningCalls||{},vr=r.virtualRounds||{},ar=r.assignment||{},fr=r.finalRound||{};return[r.date,r.recruiter,r.location||'',rs.screened||0,rs.shortlisted||0,sc.calls||0,sc.shortlisted||0,vr.rounds||0,vr.shortlisted||0,ar.conducted||0,ar.selected||0,fr.rounds||0,fr.selected||0,'"'+(r.otherTasks||'')+'"'].join(',');});
+  var csv=headers.join(',')+'\n'+rows.join('\n');
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='EOD_Report_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+};
+
+// ── HIRING STATUS FUNCTIONS ──
+function hsHexToRgb(hex){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return r+','+g+','+b;}
+function hsGetRoleData(){
+  var cands=window._candidates||[];var roles=Object.keys(HS_TARGETS);var roleData={};
+  roles.forEach(function(r){var td=HS_TARGETS[r]||{};roleData[r]={target:td.target||0,location:td.location||'',pipeline:{},joined:0,total:0};HS_PIPELINE_STAGES.forEach(function(s){roleData[r].pipeline[s]=0;});});
+  cands.forEach(function(c){if(!roleData[c.role])return;roleData[c.role].total++;if(roleData[c.role].pipeline[c.status]!==undefined)roleData[c.role].pipeline[c.status]++;if(c.status==='Joined')roleData[c.role].joined++;});
+  return roleData;
+}
+function hsRender(){
+  var cands=window._candidates||[];var roles=Object.keys(HS_TARGETS);
+  cands.forEach(function(c){if(HS_TARGETS[c.role]===undefined)HS_TARGETS[c.role]={target:0,location:''};});roles=Object.keys(HS_TARGETS);
+  var roleData=hsGetRoleData();
+  var totalOpen=0,totalPipeline=0,totalJoined=0,totalTarget=0;
+  roles.forEach(function(r){var d=roleData[r];var filled=d.joined;var tgt=(HS_TARGETS[r]||{target:0}).target||0;totalOpen+=Math.max(0,tgt-filled);totalTarget+=tgt;totalPipeline+=HS_ACTIVE_STAGES.reduce(function(a,s){return a+(d.pipeline[s]||0);},0);totalJoined+=filled;});
+  var fillRate=totalTarget>0?Math.round((totalJoined/totalTarget)*100):0;
+  var g=function(id){return document.getElementById(id);};
+  if(g('hs-k-roles'))g('hs-k-roles').textContent=roles.length;
+  if(g('hs-k-open'))g('hs-k-open').textContent=totalOpen;
+  if(g('hs-k-pipeline'))g('hs-k-pipeline').textContent=totalPipeline;
+  if(g('hs-k-joined'))g('hs-k-joined').textContent=totalJoined;
+  if(g('hs-k-fill'))g('hs-k-fill').textContent=fillRate+'%';
+  hsRenderJobsTable(roles,roleData);hsRenderTargetForm(roles);hsRenderStageChart(roles,roleData);hsRenderEodSummary(new Date().toISOString().slice(0,10));
+}
+function hsRenderJobsTable(roles,roleData){
+  var wrap=document.getElementById('hs-jobs-table');if(!wrap)return;
+  window._hsRoleList = roles.slice(); // store for index-based deletion
+  var STAGE_COLS=[
+    {label:'Applied/Screening',keys:['Applied','Screening','Shortlisted','Interview Scheduled','Call Back'],color:'#60a5fa'},
+    {label:'Round 1',keys:['Round 1 - Virtual Interview'],color:'#a78bfa'},
+    {label:'Round 2',keys:['Round 2 - Assessment'],color:'#f97316'},
+    {label:'Final',keys:['Final Round'],color:'#fbbf24'},
+    {label:'Offer',keys:['Offer Made','Offer Accepted'],color:'#34d399'},
+    {label:'Joined',keys:['Joined'],color:'#2dd4bf'},
+  ];
+  var html='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.73rem"><thead><tr>';
+  html+='<th style="text-align:left;padding:0.4rem 0.6rem;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);white-space:nowrap">Role</th>';
+  html+='<th style="text-align:center;padding:0.4rem 0.5rem;font-size:0.6rem;color:#2dd4bf;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">Location</th>';
+  html+='<th style="text-align:center;padding:0.4rem 0.6rem;font-size:0.6rem;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Target</th>';
+  STAGE_COLS.forEach(function(sc){html+='<th style="text-align:center;padding:0.4rem 0.5rem;font-size:0.6rem;color:'+sc.color+';text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">'+sc.label+'</th>';});
+  html+='<th style="text-align:left;padding:0.4rem 0.6rem;font-size:0.6rem;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Progress</th>';
+  html+='<th style="padding:0.4rem 0.4rem;border-bottom:1px solid var(--border)"></th>';
+  html+='</tr></thead><tbody>';
+  var sorted=roles.slice().sort(function(a,b){return roleData[b].total-roleData[a].total;});
+  sorted.forEach(function(role,i){
+    var d=roleData[role];
+    var td=HS_TARGETS[role]||{target:0,location:''};
+    var bg=i%2===0?'transparent':'rgba(255,255,255,0.015)';
+    var target=d.target||0,joined=d.joined||0;
+    var location=td.location||'';
+    var pct=target>0?Math.min(100,Math.round((joined/target)*100)):0;
+    var pctColor=pct>=80?'#34d399':pct>=40?'#fbbf24':'#f87171';
+    var roleIdx=window._hsRoleList.indexOf(role);
+    html+='<tr style="background:'+bg+'" onmouseover="this.style.background=\'rgba(255,255,255,0.025)\'" onmouseout="this.style.background=\''+bg+'\'">'; 
+    html+='<td style="padding:0.5rem 0.6rem;color:var(--text);font-weight:600;white-space:nowrap">'+role+'</td>';
+    html+='<td style="padding:0.5rem 0.5rem;text-align:center">';
+    if(location) html+='<span style="display:inline-block;padding:0.13rem 0.5rem;border-radius:20px;font-size:0.63rem;font-weight:600;background:rgba(45,212,191,0.12);color:#2dd4bf;border:1px solid rgba(45,212,191,0.2)">'+location+'</span>';
+    else html+='<span style="color:var(--muted2);font-size:0.68rem">—</span>';
+    html+='</td>';
+    html+='<td style="padding:0.5rem 0.6rem;text-align:center;color:var(--muted2)">'+(target||'—')+'</td>';
+    STAGE_COLS.forEach(function(sc){
+      var cnt=sc.keys.reduce(function(a,k){return a+(d.pipeline[k]||0);},0);
+      html+='<td style="padding:0.5rem 0.5rem;text-align:center">';
+      if(cnt>0)html+='<span style="display:inline-block;min-width:22px;padding:0.1rem 0.4rem;background:rgba('+hsHexToRgb(sc.color)+',0.15);color:'+sc.color+';border-radius:4px;font-weight:700;font-size:0.71rem">'+cnt+'</span>';
+      else html+='<span style="color:var(--muted2);font-size:0.68rem">—</span>';
+      html+='</td>';
+    });
+    html+='<td style="padding:0.5rem 0.8rem;min-width:130px">';
+    if(target>0){html+='<div style="display:flex;align-items:center;gap:0.5rem"><div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+pctColor+';border-radius:3px;transition:width 0.3s"></div></div><span style="font-size:0.68rem;color:'+pctColor+';font-weight:700;white-space:nowrap">'+joined+'/'+target+'</span></div>';}
+    else html+='<span style="font-size:0.68rem;color:var(--muted2)">No target</span>';
+    html+='</td>';
+    html+='<td style="padding:0.5rem 0.4rem;text-align:center">';
+    html+='<button onclick="hsDeleteRole('+roleIdx+')" title="Remove job post" style="background:none;border:1px solid transparent;color:var(--muted);cursor:pointer;font-size:0.85rem;width:22px;height:22px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;transition:all 0.15s" onmouseover="this.style.color=\'var(--red)\';this.style.borderColor=\'rgba(248,113,113,0.3)\';this.style.background=\'rgba(248,113,113,0.08)\'" onmouseout="this.style.color=\'var(--muted)\';this.style.borderColor=\'transparent\';this.style.background=\'none\'">&#10005;</button>';
+    html+='</td></tr>';
+  });
+  html+='</tbody></table></div>';wrap.innerHTML=html;
+}
+function hsRenderTargetForm(roles){
+  var wrap=document.getElementById('hs-target-form');if(!wrap)return;
+  window._hsRoleList = roles.slice();
+  var sorted=roles.slice().sort();
+  var LOCS=['','Noida','Pune','Indore'];
+  var html='<div style="display:flex;flex-direction:column;gap:0.35rem;max-height:320px;overflow-y:auto;padding-right:0.3rem;margin-bottom:0.8rem">';
+  // Header row
+  html+='<div style="display:grid;grid-template-columns:1fr 56px 90px 22px;gap:0.4rem;padding:0.2rem 0.5rem;align-items:center">';
+  html+='<span style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Role</span>';
+  html+='<span style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);text-align:center">Target</span>';
+  html+='<span style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Location</span>';
+  html+='</div>';
+  sorted.forEach(function(role){
+    var td=HS_TARGETS[role]||{target:0,location:''};
+    var safeRole=role.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    var roleIdx=window._hsRoleList.indexOf(role);
+    var locOpts=LOCS.map(function(l){return '<option value="'+l+'"'+(td.location===l?' selected':'')+'>'+( l||'Any')+'</option>';}).join('');
+    html+='<div style="display:grid;grid-template-columns:1fr 56px 90px 22px;gap:0.4rem;padding:0.3rem 0.5rem;background:var(--surface3);border-radius:7px;align-items:center">';
+    html+='<span style="font-size:0.72rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+safeRole+'">'+safeRole+'</span>';
+    html+='<input type="number" min="0" max="999" value="'+td.target+'" data-role="'+safeRole+'" oninput="hsLiveUpdate(this,\'target\')" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.25rem 0.4rem;color:var(--text);font-size:0.75rem;text-align:center;outline:none;font-family:inherit;transition:border-color 0.15s" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border)\'">'; 
+    html+='<select data-role="'+safeRole+'" onchange="hsLiveUpdate(this,\'location\')" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.24rem 0.3rem;color:var(--text);font-size:0.72rem;outline:none;font-family:inherit;transition:border-color 0.15s" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border)\'">'+locOpts+'</select>';
+    html+='<button onclick="hsDeleteRole('+roleIdx+')" title="Remove role" style="background:none;border:1px solid transparent;color:var(--muted);cursor:pointer;font-size:1rem;width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0" onmouseover="this.style.color=\'var(--red)\';this.style.borderColor=\'rgba(248,113,113,0.3)\';this.style.background=\'rgba(248,113,113,0.08)\'" onmouseout="this.style.color=\'var(--muted)\';this.style.borderColor=\'transparent\';this.style.background=\'none\'">&times;</button>';
+    html+='</div>';
+  });
+  html+='</div>';
+  html+='<div style="display:flex;gap:0.4rem;align-items:center;padding-top:0.6rem;border-top:1px solid var(--border)">';
+  html+='<input type="text" id="hs-new-role-input" placeholder="New role name…" style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:7px;padding:0.32rem 0.6rem;color:var(--text);font-family:\'DM Sans\',sans-serif;font-size:0.73rem;outline:none;transition:border-color 0.15s" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border)\'" onkeydown="if(event.key===\'Enter\')hsAddRoleInline()">';
+  html+='<button onclick="hsAddRoleInline()" style="background:var(--accent);border:none;border-radius:7px;padding:0.32rem 0.75rem;color:#000;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">+ Add</button>';
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+
+// Live-update — field is 'target' or 'location'
+window.hsLiveUpdate = function(inp, field){
+  var role=inp.getAttribute('data-role');
+  if(!HS_TARGETS[role]) HS_TARGETS[role]={target:0,location:''};
+  if(field==='target') HS_TARGETS[role].target=parseInt(inp.value)||0;
+  else if(field==='location') HS_TARGETS[role].location=inp.value;
+  var roles=Object.keys(HS_TARGETS), rd=hsGetRoleData();
+  hsRenderJobsTable(roles,rd);
+  hsRenderStageChart(roles,rd);
+  var totalJoined=0,totalTarget=0,totalOpen=0;
+  roles.forEach(function(r){
+    totalJoined+=(rd[r]||{joined:0}).joined||0;
+    totalTarget+=(HS_TARGETS[r]||{target:0}).target||0;
+    totalOpen+=Math.max(0,((HS_TARGETS[r]||{target:0}).target||0)-((rd[r]||{joined:0}).joined||0));
+  });
+  var fillRate=totalTarget>0?Math.round((totalJoined/totalTarget)*100):0;
+  var g=function(id){return document.getElementById(id);};
+  if(g('hs-k-open'))g('hs-k-open').textContent=totalOpen;
+  if(g('hs-k-fill'))g('hs-k-fill').textContent=fillRate+'%';
+};
+
+window.hsDeleteRole = function(idx){
+  var role=(window._hsRoleList||[])[idx];
+  if(!role)return;
+  if(!confirm('Remove "'+role+'" from hiring targets?'))return;
+  delete HS_TARGETS[role];
+  var roles=Object.keys(HS_TARGETS), rd=hsGetRoleData();
+  hsRenderTargetForm(roles);
+  hsRenderJobsTable(roles,rd);
+  hsRenderStageChart(roles,rd);
+  var g=function(id){return document.getElementById(id);};
+  if(g('hs-k-roles'))g('hs-k-roles').textContent=roles.length;
+  // Update open + fill
+  var totalJoined=0,totalTarget=0,totalOpen=0;
+  roles.forEach(function(r){totalJoined+=(rd[r]||{joined:0}).joined||0;totalTarget+=(HS_TARGETS[r]||{target:0}).target||0;totalOpen+=Math.max(0,((HS_TARGETS[r]||{target:0}).target||0)-((rd[r]||{joined:0}).joined||0));});
+  var fillRate=totalTarget>0?Math.round((totalJoined/totalTarget)*100):0;
+  if(g('hs-k-open'))g('hs-k-open').textContent=totalOpen;
+  if(g('hs-k-fill'))g('hs-k-fill').textContent=fillRate+'%';
+};
+
+window.hsAddRoleInline = function(){
+  var inp=document.getElementById('hs-new-role-input');
+  if(!inp)return;
+  var role=inp.value.trim();
+  if(!role){inp.focus();return;}
+  if(HS_TARGETS[role]!==undefined){inp.style.borderColor='var(--red)';setTimeout(function(){inp.style.borderColor='var(--border)';},1200);return;}
+  HS_TARGETS[role]={target:0,location:''};
+  inp.value='';
+  var roles=Object.keys(HS_TARGETS), rd=hsGetRoleData();
+  hsRenderTargetForm(roles);
+  hsRenderJobsTable(roles,rd);
+  hsRenderStageChart(roles,rd);
+  var g=function(id){return document.getElementById(id);};
+  if(g('hs-k-roles'))g('hs-k-roles').textContent=roles.length;
+  var formList=document.querySelector('#hs-target-form > div');
+  if(formList)formList.scrollTop=formList.scrollHeight;
+};
+
+window.hsSaveTargets = function(){
+  var inputs=document.querySelectorAll('#hs-target-form input[data-role]');
+  inputs.forEach(function(inp){
+    var role=inp.getAttribute('data-role');
+    if(!HS_TARGETS[role]) HS_TARGETS[role]={target:0,location:''};
+    HS_TARGETS[role].target=parseInt(inp.value)||0;
+  });
+  var selects=document.querySelectorAll('#hs-target-form select[data-role]');
+  selects.forEach(function(sel){
+    var role=sel.getAttribute('data-role');
+    if(!HS_TARGETS[role]) HS_TARGETS[role]={target:0,location:''};
+    HS_TARGETS[role].location=sel.value;
+  });
+  var msg=document.getElementById('hs-target-msg');
+  if(msg){msg.textContent='✓ All targets saved!';setTimeout(function(){msg.textContent='';},2000);}
+  var roles=Object.keys(HS_TARGETS),rd=hsGetRoleData();
+  hsRenderJobsTable(roles,rd);hsRenderStageChart(roles,rd);
+};
+window.hsAddRole = window.hsAddRoleInline;
+function hsRenderStageChart(roles,roleData){
+  var wrap=document.getElementById('hs-stage-chart');if(!wrap)return;
+  var stageTotals={};
+  var SHOW=['Screening','Round 1 - Virtual Interview','Round 2 - Assessment','Final Round','Offer Made','Joined'];
+  var LABELS={'Screening':'Screening','Round 1 - Virtual Interview':'Round 1','Round 2 - Assessment':'Round 2','Final Round':'Final','Offer Made':'Offer','Joined':'Joined'};
+  var COLORS={'Screening':'#60a5fa','Round 1 - Virtual Interview':'#a78bfa','Round 2 - Assessment':'#f97316','Final Round':'#fbbf24','Offer Made':'#34d399','Joined':'#2dd4bf'};
+  SHOW.forEach(function(s){stageTotals[s]=0;});
+  roles.forEach(function(r){SHOW.forEach(function(s){stageTotals[s]+=(roleData[r].pipeline[s]||0);});});
+  var maxV=Math.max.apply(null,SHOW.map(function(s){return stageTotals[s];}))||1;
+  var html='<div style="display:flex;flex-direction:column;gap:0.5rem">';
+  SHOW.forEach(function(s){
+    var v=stageTotals[s],w=Math.round((v/maxV)*100);
+    html+='<div style="display:flex;align-items:center;gap:0.6rem"><span style="font-size:0.65rem;color:var(--muted2);width:58px;text-align:right;white-space:nowrap">'+LABELS[s]+'</span>';
+    html+='<div style="flex:1;height:14px;background:var(--surface3);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:'+COLORS[s]+';border-radius:4px"></div></div>';
+    html+='<span style="font-size:0.7rem;font-weight:700;color:'+COLORS[s]+';width:20px">'+v+'</span></div>';
+  });
+  html+='</div>';wrap.innerHTML=html;
+}
+function hsRenderEodSummary(today){
+  var wrap=document.getElementById('hs-eod-summary');
+  var dateEl=document.getElementById('hs-eod-date');if(dateEl)dateEl.textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'});
+  if(!wrap)return;
+  var todayReports=eodReports.filter(function(r){return r.date===today;});
+  if(!todayReports.length){wrap.innerHTML='<div style="text-align:center;padding:1.2rem;color:var(--muted2);font-size:0.75rem">No EOD reports submitted for today yet.<br><span style="font-size:0.68rem">Switch to EOD Reports tab to log activity.</span></div>';return;}
+  var METRIC_COLS=[
+    {label:'Resumes Screened',color:'#60a5fa',fn:function(r){return(r.resumeShortlisting||{}).screened||0;}},
+    {label:'Calls Connected',color:'#a78bfa',fn:function(r){return(r.screeningCalls||{}).calls||0;}},
+    {label:'Shortlisted (SC)',color:'#f97316',fn:function(r){return(r.screeningCalls||{}).shortlisted||0;}},
+    {label:'Virtual Rounds',color:'#fbbf24',fn:function(r){return(r.virtualRounds||{}).rounds||0;}},
+    {label:'Assignments',color:'#34d399',fn:function(r){return(r.assignment||{}).conducted||0;}},
+    {label:'Final Selected',color:'#2dd4bf',fn:function(r){return(r.finalRound||{}).selected||0;}},
+  ];
+  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;margin-bottom:1rem">';
+  METRIC_COLS.forEach(function(m){
+    var total=todayReports.reduce(function(a,r){return a+m.fn(r);},0);
+    html+='<div style="background:var(--surface3);border-radius:8px;padding:0.6rem 0.7rem"><div style="font-size:0.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.2rem">'+m.label+'</div><div style="font-size:1.1rem;font-weight:700;color:'+m.color+'">'+total+'</div></div>';
+  });
+  html+='</div>';
+  html+='<div style="display:flex;flex-direction:column;gap:0.4rem">';
+  todayReports.forEach(function(r){
+    html+='<div style="display:flex;align-items:center;gap:0.8rem;padding:0.5rem 0.7rem;background:var(--surface3);border-radius:8px">';
+    html+='<span style="font-weight:700;color:var(--accent);font-size:0.75rem;min-width:80px">'+r.recruiter.split(' ')[0]+'</span>';
+    if(r.location)html+='<span style="font-size:0.65rem;color:#2dd4bf;background:rgba(45,212,191,0.1);padding:0.1rem 0.4rem;border-radius:4px">'+r.location+'</span>';
+    html+='</div>';
+  });
+  html+='</div>';wrap.innerHTML=html;
+}
+
+// ── INIT ──
+setTimeout(function(){ window.ivRender(); }, 100);
+</script>
+</body>
+</html>
