@@ -1,12 +1,35 @@
 import fs from "fs";
 import path from "path";
-import Sqlite from "better-sqlite3";
 import { createClient, type Client } from "@libsql/client";
 import type { Candidate, DashboardState, EodReport, Offer } from "./types";
 import { DEFAULT_HIRING_TARGETS } from "./constants";
+import seedCandidatesJson from "./seed-candidates.json";
+import seedOffersJson from "./seed-offers.json";
 
-/** better-sqlite3 merges class + namespace; use instance type for annotations */
-type SqliteDb = InstanceType<typeof Sqlite>;
+/** Narrow surface used from better-sqlite3 so we can lazy-load the native module. */
+interface LocalSqliteStatement {
+  run(...args: unknown[]): void;
+  get(...args: unknown[]): unknown;
+  all(...args: unknown[]): unknown[];
+}
+
+interface LocalSqliteDb {
+  exec(sql: string): void;
+  prepare(sql: string): LocalSqliteStatement;
+}
+
+type SeedCandidateRow = {
+  date: string;
+  candidate: string;
+  dept: string;
+  role: string;
+  source: string;
+  owner: string;
+  status: string;
+  rating: number | "" | string | null | undefined;
+  notes?: string;
+  location?: string;
+};
 
 const DDL_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS candidates (
@@ -69,7 +92,8 @@ function getLibsql(): Client {
   return libsqlClient;
 }
 
-let dbInstance: SqliteDb | null = null;
+let localDb: LocalSqliteDb | null = null;
+let localDbPromise: Promise<LocalSqliteDb> | null = null;
 
 function dbPath() {
   const dir = path.join(process.cwd(), "data");
@@ -77,15 +101,23 @@ function dbPath() {
   return path.join(dir, "interviewtrack.db");
 }
 
-function getLocalDb(): SqliteDb {
+/** Dynamic import so Vercel + Turso never loads the better-sqlite3 native addon. */
+async function getLocalDb(): Promise<LocalSqliteDb> {
   assertNotVercelWithoutTurso();
-  if (dbInstance) return dbInstance;
-  dbInstance = new Sqlite(dbPath());
-  for (const sql of DDL_STATEMENTS) {
-    dbInstance.exec(sql);
+  if (localDb) return localDb;
+  if (!localDbPromise) {
+    localDbPromise = (async () => {
+      const { default: SqliteCtor } = await import("better-sqlite3");
+      const db = new SqliteCtor(dbPath()) as unknown as LocalSqliteDb;
+      for (const sql of DDL_STATEMENTS) {
+        db.exec(sql);
+      }
+      seedIfEmptyLocal(db);
+      localDb = db;
+      return db;
+    })();
   }
-  seedIfEmptyLocal(dbInstance);
-  return dbInstance;
+  return localDbPromise;
 }
 
 function num(v: unknown): number {
@@ -108,22 +140,9 @@ function ensureLibsqlSchemaAndSeed(client: Client): Promise<void> {
       const c = first ? num(first.c ?? first.C) : 0;
       if (c > 0) return;
 
-      const rawC = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), "lib", "seed-candidates.json"), "utf8"),
-  ) as Array<{
-    date: string;
-    candidate: string;
-    dept: string;
-    role: string;
-    source: string;
-    owner: string;
-    status: string;
-    rating: number | "" | string;
-    notes: string;
-    location: string;
-  }>;
+      const rawC = seedCandidatesJson as SeedCandidateRow[];
 
-  for (const c of rawC) {
+      for (const c of rawC) {
     const rating =
       c.rating === "" || c.rating === null || c.rating === undefined
         ? null
@@ -146,11 +165,9 @@ function ensureLibsqlSchemaAndSeed(client: Client): Promise<void> {
     });
   }
 
-  const rawO = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), "lib", "seed-offers.json"), "utf8"),
-  ) as Offer[];
+      const rawO = seedOffersJson as Offer[];
 
-  for (const o of rawO) {
+      for (const o of rawO) {
     await client.execute({
       sql: `INSERT INTO offers (id, name, role, dept, status, offerdate, joindate, notes)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -164,8 +181,8 @@ function ensureLibsqlSchemaAndSeed(client: Client): Promise<void> {
         o.joindate ?? "",
         o.notes ?? "",
       ],
-    });
-  }
+      });
+      }
 
       for (const [role, v] of Object.entries(DEFAULT_HIRING_TARGETS)) {
         await client.execute({
@@ -178,24 +195,11 @@ function ensureLibsqlSchemaAndSeed(client: Client): Promise<void> {
   return libsqlBootstrap;
 }
 
-function seedIfEmptyLocal(db: SqliteDb) {
+function seedIfEmptyLocal(db: LocalSqliteDb) {
   const n = db.prepare("SELECT COUNT(*) AS c FROM candidates").get() as { c: number };
   if (n.c > 0) return;
 
-  const rawC = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), "lib", "seed-candidates.json"), "utf8"),
-  ) as Array<{
-    date: string;
-    candidate: string;
-    dept: string;
-    role: string;
-    source: string;
-    owner: string;
-    status: string;
-    rating: number | "" | string;
-    notes: string;
-    location: string;
-  }>;
+  const rawC = seedCandidatesJson as SeedCandidateRow[];
 
   const insC = db.prepare(
     `INSERT INTO candidates (date, candidate, dept, role, source, owner, status, rating, notes, location)
@@ -220,9 +224,7 @@ function seedIfEmptyLocal(db: SqliteDb) {
     );
   }
 
-  const rawO = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), "lib", "seed-offers.json"), "utf8"),
-  ) as Offer[];
+  const rawO = seedOffersJson as Offer[];
   const insO = db.prepare(
     `INSERT INTO offers (id, name, role, dept, status, offerdate, joindate, notes)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -317,7 +319,7 @@ async function loadFromLibsql(client: Client): Promise<DashboardState> {
   return { candidates, offers, eodReports, hiringTargets };
 }
 
-function loadFromLocalSqlite(db: SqliteDb): DashboardState {
+function loadFromLocalSqlite(db: LocalSqliteDb): DashboardState {
   const candidates = db
     .prepare(
       `SELECT id, date, candidate, dept, role, source, owner, status, rating, notes, location FROM candidates ORDER BY date DESC, id DESC`,
@@ -364,7 +366,7 @@ export async function loadDashboardState(): Promise<DashboardState> {
   if (tursoConfigured()) {
     return loadFromLibsql(getLibsql());
   }
-  return loadFromLocalSqlite(getLocalDb());
+  return loadFromLocalSqlite(await getLocalDb());
 }
 
 export async function deleteOffer(id: number): Promise<void> {
@@ -374,7 +376,7 @@ export async function deleteOffer(id: number): Promise<void> {
     await client.execute({ sql: "DELETE FROM offers WHERE id = ?", args: [id] });
     return;
   }
-  getLocalDb().prepare("DELETE FROM offers WHERE id = ?").run(id);
+  (await getLocalDb()).prepare("DELETE FROM offers WHERE id = ?").run(id);
 }
 
 export async function upsertEodReport(entry: {
@@ -400,7 +402,7 @@ export async function upsertEodReport(entry: {
     const row = sel.rows[0] as Record<string, unknown> | undefined;
     return row ? num(row.id) : 0;
   }
-  const db = getLocalDb();
+  const db = await getLocalDb();
   db.prepare(
     `INSERT INTO eod_reports (date, recruiter, location, payload) VALUES (?, ?, ?, ?)
      ON CONFLICT(recruiter, date) DO UPDATE SET
@@ -420,7 +422,7 @@ export async function deleteEodReport(id: number): Promise<void> {
     await client.execute({ sql: "DELETE FROM eod_reports WHERE id = ?", args: [id] });
     return;
   }
-  getLocalDb().prepare("DELETE FROM eod_reports WHERE id = ?").run(id);
+  (await getLocalDb()).prepare("DELETE FROM eod_reports WHERE id = ?").run(id);
 }
 
 export async function replaceHiringTargets(
@@ -438,7 +440,7 @@ export async function replaceHiringTargets(
     }
     return;
   }
-  const db = getLocalDb();
+  const db = await getLocalDb();
   db.exec("DELETE FROM hiring_targets");
   const ins = db.prepare(`INSERT INTO hiring_targets (role, target, location) VALUES (?, ?, ?)`);
   for (const [role, v] of Object.entries(targets)) {
