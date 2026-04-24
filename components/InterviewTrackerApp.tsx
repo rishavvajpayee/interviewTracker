@@ -18,6 +18,7 @@ import {
   STAGE_COLS,
   computeKpis,
   eodFilteredReports,
+  eodRecruiterChoices,
   filterCandidates,
   funnelStageCounts,
   hiringSummaryKpis,
@@ -211,7 +212,8 @@ function EodSection({
   eodExportCsv: () => void;
   dateLabel: string;
 }) {
-  const recs = ["All", ...OWNERS];
+  const recruiterChoices = eodRecruiterChoices(eodList);
+  const recs = ["All", ...recruiterChoices];
   return (
     <div>
       <div
@@ -285,16 +287,20 @@ function EodSection({
               </div>
               <div>
                 <div className="iv-label">Recruiter</div>
-                <select
+                <input
+                  type="text"
                   className="iv-field"
+                  list="iv-eod-recruiters-datalist"
+                  placeholder="Type or select name"
+                  autoComplete="off"
                   value={eodForm.recruiter}
                   onChange={(e) => setEodForm((f) => ({ ...f, recruiter: e.target.value }))}
-                >
-                  <option value="">Select...</option>
-                  {OWNERS.map((o) => (
-                    <option key={o}>{o}</option>
+                />
+                <datalist id="iv-eod-recruiters-datalist">
+                  {recruiterChoices.map((o) => (
+                    <option key={o} value={o} />
                   ))}
-                </select>
+                </datalist>
               </div>
               <div>
                 <div className="iv-label">Location</div>
@@ -1520,9 +1526,7 @@ export function InterviewTrackerApp({ initial }: Props) {
     todayOnly: false,
   });
   const [eodActiveRec, setEodActiveRec] = useState("");
-  const [localHiring, setLocalHiring] = useState(() =>
-    mergeHiringTargets(initial.hiringTargets, initial.candidates),
-  );
+  const [localHiring, setLocalHiring] = useState(() => mergeHiringTargets(initial.hiringTargets));
   const [eodMsg, setEodMsg] = useState("");
   const [eodMsgColor, setEodMsgColor] = useState("var(--green)");
   const [hsTargetMsg, setHsTargetMsg] = useState("");
@@ -1553,7 +1557,7 @@ export function InterviewTrackerApp({ initial }: Props) {
 
   const applyDashboard = useCallback((next: DashboardState) => {
     setData(next);
-    setLocalHiring(mergeHiringTargets(next.hiringTargets, next.candidates));
+    setLocalHiring(mergeHiringTargets(next.hiringTargets));
   }, []);
 
   const refresh = useCallback(async () => {
@@ -1707,7 +1711,7 @@ export function InterviewTrackerApp({ initial }: Props) {
 
   const submitEod = async () => {
     if (!eodForm.recruiter || !eodForm.date) {
-      setEodMsg("⚠ Please select recruiter and date.");
+      setEodMsg("⚠ Please enter recruiter name and date.");
       setEodMsgColor("var(--red)");
       return;
     }

@@ -1,5 +1,5 @@
 import type { Candidate, EodReport, Offer } from "./types";
-import { HS_ACTIVE_STAGES, HS_PIPELINE_STAGES } from "./constants";
+import { HS_ACTIVE_STAGES, HS_PIPELINE_STAGES, OWNERS } from "./constants";
 
 export const SBG: Record<string, string> = {
   Applied: "rgba(148,163,184,0.15)",
@@ -240,15 +240,11 @@ export function hsGetRoleData(
   return roleData;
 }
 
+/** Hiring targets from persistence only — candidate rows do not implicitly create job posts. */
 export function mergeHiringTargets(
   base: Record<string, { target: number; location: string }>,
-  cands: Candidate[],
 ): Record<string, { target: number; location: string }> {
-  const m = { ...base };
-  for (const c of cands) {
-    if (!m[c.role]) m[c.role] = { target: 0, location: "" };
-  }
-  return m;
+  return { ...base };
 }
 
 export const STAGE_COLS = [
@@ -305,4 +301,15 @@ export function sortOffersForTable(offers: Offer[]): Offer[] {
 export function eodFilteredReports(reports: EodReport[], activeRec: string): EodReport[] {
   if (!activeRec) return reports;
   return reports.filter((r) => r.recruiter === activeRec);
+}
+
+/** Suggested recruiters for EOD: default owners plus any names already saved on reports. */
+export function eodRecruiterChoices(reports: EodReport[]): string[] {
+  const ownerSet = new Set<string>(OWNERS);
+  const extra = new Set<string>();
+  for (const r of reports) {
+    const name = r.recruiter.trim();
+    if (name && !ownerSet.has(name)) extra.add(name);
+  }
+  return [...OWNERS, ...[...extra].sort((a, b) => a.localeCompare(b))];
 }

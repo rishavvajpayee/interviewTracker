@@ -1,21 +1,5 @@
 import { neon } from "@neondatabase/serverless";
 import type { Candidate, DashboardState, EodReport, Offer } from "./types";
-import { DEFAULT_HIRING_TARGETS } from "./constants";
-import seedCandidatesJson from "./seed-candidates.json";
-import seedOffersJson from "./seed-offers.json";
-
-type SeedCandidateRow = {
-  date: string;
-  candidate: string;
-  dept: string;
-  role: string;
-  source: string;
-  owner: string;
-  status: string;
-  rating: number | "" | string | null | undefined;
-  notes?: string;
-  location?: string;
-};
 
 type Sql = ReturnType<typeof neon>;
 
@@ -50,7 +34,7 @@ function asRowObjects(r: unknown): Record<string, unknown>[] {
   return r as Record<string, unknown>[];
 }
 
-async function ensureSchemaAndSeed(): Promise<void> {
+async function ensureSchema(): Promise<void> {
   if (!bootstrapPromise) {
     bootstrapPromise = (async () => {
       const sql = getSql();
@@ -102,57 +86,6 @@ async function ensureSchemaAndSeed(): Promise<void> {
           location TEXT NOT NULL DEFAULT ''
         )
       `;
-
-      const cntRows = asRowObjects(await sql`SELECT COUNT(*)::int AS c FROM candidates`);
-      const c = num(cntRows[0]?.c);
-      if (c > 0) return;
-
-      const rawC = seedCandidatesJson as SeedCandidateRow[];
-      for (const row of rawC) {
-        const rating =
-          row.rating === "" || row.rating === null || row.rating === undefined
-            ? null
-            : Number(row.rating);
-        await sql`
-          INSERT INTO candidates ("date", candidate, dept, role, source, owner, status, rating, notes, location)
-          VALUES (
-            ${row.date},
-            ${row.candidate},
-            ${row.dept},
-            ${row.role},
-            ${row.source},
-            ${row.owner},
-            ${row.status},
-            ${rating},
-            ${row.notes ?? ""},
-            ${row.location ?? ""}
-          )
-        `;
-      }
-
-      const rawO = seedOffersJson as Offer[];
-      for (const o of rawO) {
-        await sql`
-          INSERT INTO offers (id, name, role, dept, status, offerdate, joindate, notes)
-          VALUES (
-            ${o.id},
-            ${o.name},
-            ${o.role},
-            ${o.dept},
-            ${o.status},
-            ${o.offerdate ?? ""},
-            ${o.joindate ?? ""},
-            ${o.notes ?? ""}
-          )
-        `;
-      }
-
-      for (const [role, v] of Object.entries(DEFAULT_HIRING_TARGETS)) {
-        await sql`
-          INSERT INTO hiring_targets (role, target, location)
-          VALUES (${role}, ${v.target}, ${v.location})
-        `;
-      }
     })();
   }
   return bootstrapPromise;
@@ -190,7 +123,7 @@ function mapOfferRow(row: Record<string, unknown>): Offer {
 }
 
 export async function loadDashboardState(): Promise<DashboardState> {
-  await ensureSchemaAndSeed();
+  await ensureSchema();
   const sql = getSql();
 
   const candRows = asRowObjects(
@@ -242,7 +175,7 @@ export async function loadDashboardState(): Promise<DashboardState> {
 }
 
 export async function deleteOffer(id: number): Promise<void> {
-  await ensureSchemaAndSeed();
+  await ensureSchema();
   const sql = getSql();
   await sql`DELETE FROM offers WHERE id = ${id}`;
 }
@@ -253,7 +186,7 @@ export async function upsertEodReport(entry: {
   location: string;
   payload: string;
 }): Promise<number> {
-  await ensureSchemaAndSeed();
+  await ensureSchema();
   const sql = getSql();
   const rows = asRowObjects(
     await sql`
@@ -270,7 +203,7 @@ export async function upsertEodReport(entry: {
 }
 
 export async function deleteEodReport(id: number): Promise<void> {
-  await ensureSchemaAndSeed();
+  await ensureSchema();
   const sql = getSql();
   await sql`DELETE FROM eod_reports WHERE id = ${id}`;
 }
@@ -278,7 +211,7 @@ export async function deleteEodReport(id: number): Promise<void> {
 export async function replaceHiringTargets(
   targets: Record<string, { target: number; location: string }>,
 ): Promise<void> {
-  await ensureSchemaAndSeed();
+  await ensureSchema();
   const sql = getSql();
   await sql`DELETE FROM hiring_targets`;
   for (const [role, v] of Object.entries(targets)) {

@@ -94,20 +94,3 @@ export const HS_ACTIVE_STAGES = [
   "Offer Made",
   "Offer Accepted",
 ] as const;
-
-export const DEFAULT_HIRING_TARGETS: Record<string, { target: number; location: string }> = {
-  "Executive Assistant": { target: 3, location: "Noida" },
-  "CSAT Executive": { target: 4, location: "Noida" },
-  "HR Recruiter": { target: 2, location: "Noida" },
-  "HR Executive": { target: 2, location: "Noida" },
-  "Asst. Team Lead": { target: 2, location: "Pune" },
-  "FD Trainer": { target: 2, location: "Noida" },
-  "Social Media Executive": { target: 2, location: "Indore" },
-  BDA: { target: 3, location: "Noida" },
-  "Graphic Designer": { target: 1, location: "Pune" },
-  "Makeup Artist": { target: 2, location: "Noida" },
-  "Sr BDA": { target: 2, location: "Noida" },
-  "Content Writer": { target: 1, location: "Indore" },
-  "Fashion Model": { target: 2, location: "Noida" },
-  "FD Trainer Intern": { target: 2, location: "Pune" },
-};
